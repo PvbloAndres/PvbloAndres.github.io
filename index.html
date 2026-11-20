@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pablo Oñate · Desarrollador de Software</title>
-<meta name="description" content="Portafolio de Pablo Oñate, desarrollador de software junior. Python, JavaScript, IA, automatización y datos.">
+<meta name="description" content="Portafolio de Pablo Oñate, desarrollador de software junior. Python, JavaScript, IA, automatización y datos. Portales y dashboards de ventas a medida.">
 <meta name="theme-color" content="#ffffff">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -121,6 +121,24 @@ section{padding:110px 0;position:relative;z-index:1}
 .card .btn{margin-top:26px}
 .visual{border-radius:20px;background:var(--soft);border:1px solid var(--line);padding:22px;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:320px}
 
+/* portal de ventas: captura de escritorio + teléfono */
+.card .buttons .btn{margin-top:0}
+.demo-note{font-size:13px;color:var(--muted);margin-top:14px}
+.visual.duo{position:relative;background:#0b1222;border-color:#1c2a44;padding:22px;flex-direction:column;justify-content:center;gap:18px;min-height:380px}
+.visual.duo .desk{width:100%;height:auto;border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.45);display:block}
+.visual.duo .desk-2{width:82%;align-self:flex-start}
+.visual.duo .phone{position:absolute;right:18px;bottom:18px;width:30%;max-width:170px;height:auto;border-radius:22px;border:4px solid #26314d;box-shadow:0 24px 50px rgba(0,0,0,.55)}
+@media (max-width:860px){.visual.duo .desk-2{display:none}.visual.duo{padding-bottom:120px}.visual.duo .phone{width:34%}}
+
+/* servicios: pasos */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:18px;counter-reset:paso}
+.step{padding:24px;border-radius:22px;background:var(--soft);border:1px solid var(--line)}
+.step b{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--grad);color:#fff;font-family:var(--display);font-size:16px}
+.step h3{font-size:19px;margin-top:12px}
+.step p{color:var(--muted);font-size:14.5px;margin-top:6px}
+@media (max-width:860px){.steps{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.steps{grid-template-columns:1fr}}
+
 /* jarvis animated flow */
 .flow{width:100%;display:grid;gap:10px}
 .node{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:14px;position:relative;transition:.4s}
@@ -231,6 +249,7 @@ footer{padding:36px 0 46px;text-align:center;color:var(--muted);font-size:14px}
   <a class="logo" href="#inicio">Pablo<b>.</b>Oñate</a>
   <div class="links">
     <a href="#proyectos">Proyectos</a>
+    <a href="#servicios">Servicios</a>
     <a href="#experiencia">Experiencia</a>
     <a href="#habilidades">Habilidades</a>
     <a href="#documentos">Documentos</a>
@@ -264,8 +283,8 @@ footer{padding:36px 0 46px;text-align:center;color:var(--muted);font-size:14px}
 
 <div class="marquee" aria-hidden="true">
   <div class="track">
-    <span>Python</span><span>JavaScript</span><span>Claude API</span><span>PostgreSQL</span><span>APIs REST</span><span>Power Automate</span><span>Power BI</span><span>SQL</span><span>Git</span><span>IA generativa</span>
-    <span>Python</span><span>JavaScript</span><span>Claude API</span><span>PostgreSQL</span><span>APIs REST</span><span>Power Automate</span><span>Power BI</span><span>SQL</span><span>Git</span><span>IA generativa</span>
+    <span>Python</span><span>JavaScript</span><span>Claude API</span><span>PostgreSQL</span><span>Supabase</span><span>APIs REST</span><span>Power Automate</span><span>Power BI</span><span>SQL</span><span>Git</span><span>IA generativa</span>
+    <span>Python</span><span>JavaScript</span><span>Claude API</span><span>PostgreSQL</span><span>Supabase</span><span>APIs REST</span><span>Power Automate</span><span>Power BI</span><span>SQL</span><span>Git</span><span>IA generativa</span>
   </div>
 </div>
 
@@ -278,9 +297,35 @@ footer{padding:36px 0 46px;text-align:center;color:var(--muted);font-size:14px}
     </div>
 
     <div class="projects">
+      <article class="card reveal tilt" id="portal-ventas">
+        <div>
+          <span class="num">P-01 · Producto real en uso · Ventas y datos</span>
+          <h3>Portal de Ventas</h3>
+          <span class="kind">App para equipos de venta de telecomunicaciones</span>
+          <p class="desc">Diseñé y programé la app interna con la que el equipo de backoffice y supervisores de VPrime (distribuidor de VTR y Claro) deja las planillas de Excel: ingreso de ventas, seguimiento de instalaciones y calidad de boletas, en web, Android y iPhone.</p>
+          <ul>
+            <li>Reemplaza más de 5 planillas: cada venta queda en una base de datos con historial de cambios y respaldo diario.</li>
+            <li>Cruza las ventas con el maestro de VTR/Claro y arma solo los reportes del día, las alertas y los reingresos.</li>
+            <li>Cada supervisor ve su % de boletas pagadas en plazo y llama al cliente con un toque antes de su día 8.</li>
+            <li>Permisos por rol en la base (Row Level Security), funciona sin señal y se instala como app Android.</li>
+          </ul>
+          <div class="stack"><span>JavaScript</span><span>PostgreSQL</span><span>Supabase</span><span>Row Level Security</span><span>Capacitor</span><span>Android</span><span>PWA</span><span>Playwright</span><span>GitHub Actions</span><span>Cloudflare Pages</span></div>
+          <div class="buttons" style="margin-top:26px">
+            <a class="btn primary magnetic" href="portal-ventas/#dashboard" target="_blank" rel="noopener"><span>Probar la demo →</span></a>
+            <a class="btn magnetic" href="#servicios"><span>Quiero uno para mi empresa</span></a>
+          </div>
+          <p class="demo-note">La demo usa datos 100% ficticios y no guarda cambios. Usa el selector «Ver como supervisor» para ver la app de un supervisor.</p>
+        </div>
+        <div class="visual duo">
+          <img class="desk" src="img/portal-ventas-dashboard.webp" alt="Dashboard del Portal de Ventas: ventas brutas, instaladas, canceladas, pendientes y límites del mes" width="1600" height="1000" loading="lazy">
+          <img class="desk desk-2" src="img/portal-ventas-supervisores.webp" alt="Apartado Supervisores: una tarjeta por supervisor con ventas, instalación, cuestionarios y fuera de zona" width="1600" height="1000" loading="lazy">
+          <img class="phone" src="img/portal-ventas-telefono.webp" alt="App del supervisor en el teléfono: 60% de boletas pagadas en plazo" width="560" height="1212" loading="lazy">
+        </div>
+      </article>
+
       <article class="card reveal tilt">
         <div>
-          <span class="num">P-01 · Inteligencia artificial</span>
+          <span class="num">P-02 · Inteligencia artificial</span>
           <h3>Jarvis</h3>
           <span class="kind">Asistente personal de voz con IA</span>
           <p class="desc">Le hablas y un modelo de IA decide qué herramientas usar para controlar el PC, un teléfono Android y Alexa.</p>
@@ -310,7 +355,7 @@ footer{padding:36px 0 46px;text-align:center;color:var(--muted);font-size:14px}
 
       <article class="card reveal tilt">
         <div>
-          <span class="num">P-02 · Web y móvil</span>
+          <span class="num">P-03 · Web y móvil</span>
           <h3>VeloTrack</h3>
           <span class="kind">Plataforma de rastreo GPS de vehículos</span>
           <p class="desc">App Android y web para seguir una flota en tiempo real, revisar recorridos y recibir alertas en el celular.</p>
@@ -348,10 +393,36 @@ footer{padding:36px 0 46px;text-align:center;color:var(--muted);font-size:14px}
   </div>
 </section>
 
+<section id="servicios" style="padding-top:40px">
+  <div class="wrap">
+    <div class="reveal">
+      <p class="kicker">// 02 — SERVICIOS</p>
+      <h2 class="title">Dashboards y portales para tu equipo de ventas</h2>
+      <p class="sub">Si tu equipo vive en planillas de Excel, armo una app a la medida de tu proceso: con tus datos, tus metas y un acceso para cada supervisor.</p>
+    </div>
+    <div class="skills">
+      <div class="skill reveal"><div class="ic">📈</div><h3>Portal de ventas</h3><p>Ingreso de ventas en una base de datos segura, seguimiento de instalaciones y un portal propio para cada supervisor, en web y teléfono.</p></div>
+      <div class="skill reveal"><div class="ic">💳</div><h3>Calidad y cobranza</h3><p>% de boletas pagadas por supervisor y vendedor, lista de clientes por cobrar con su fecha límite y teléfono para llamar.</p></div>
+      <div class="skill reveal"><div class="ic">⚡</div><h3>Reportes automáticos</h3><p>Cruce con los archivos de la compañía, alertas y reportes diarios listos para WhatsApp, sin armarlos a mano.</p></div>
+    </div>
+    <div class="steps reveal">
+      <div class="step"><b>1</b><h3>Diagnóstico</h3><p>Una reunión para ver tus planillas y tu proceso. Sin costo.</p></div>
+      <div class="step"><b>2</b><h3>Demo con tu caso</h3><p>Te muestro la app funcionando con un ejemplo de tus datos.</p></div>
+      <div class="step"><b>3</b><h3>Marcha blanca</h3><p>Tu equipo la usa en paralelo al Excel hasta que confíe en ella.</p></div>
+      <div class="step"><b>4</b><h3>Soporte mensual</h3><p>Ajustes, respaldos y mejoras por una suscripción mensual.</p></div>
+    </div>
+    <div class="buttons reveal" style="margin-top:34px">
+      <a class="btn primary magnetic" href="https://wa.me/56935964731?text=Hola%20Pablo%2C%20vi%20tu%20portafolio%20y%20me%20interesa%20un%20portal%20de%20ventas%20para%20mi%20equipo." target="_blank" rel="noopener"><span>Cotizar por WhatsApp</span></a>
+      <a class="btn magnetic" href="mailto:pablo.onate958@gmail.com?subject=Cotizaci%C3%B3n%20portal%20de%20ventas"><span>Cotizar por correo</span></a>
+      <a class="btn magnetic" href="portal-ventas/#dashboard" target="_blank" rel="noopener"><span>Ver la demo</span></a>
+    </div>
+  </div>
+</section>
+
 <section id="experiencia" style="background:var(--soft);border-block:1px solid var(--line)">
   <div class="wrap">
     <div class="reveal">
-      <p class="kicker">// 02 — EXPERIENCIA</p>
+      <p class="kicker">// 03 — EXPERIENCIA</p>
       <h2 class="title">Dónde he trabajado</h2>
     </div>
     <div class="timeline" id="timeline">
@@ -360,6 +431,7 @@ footer{padding:36px 0 46px;text-align:center;color:var(--muted);font-size:14px}
         <p class="when">Sep 2026 — Actualidad</p>
         <h3>VPrime <span>· Ejecutivo de BackOffice (servicios para Claro VTR)</span></h3>
         <ul>
+          <li>Diseñé y desarrollé el <a href="#portal-ventas" style="color:var(--a1);font-weight:600">Portal de Ventas</a> que reemplazó las planillas de Excel del equipo: ventas, seguimiento de instalaciones y calidad de boletas por supervisor.</li>
           <li>Soporte al equipo de ventas y resolución de incidencias del proceso de venta.</li>
           <li>Ingreso y validación de ventas en sistemas, cuidando la calidad de los datos.</li>
           <li>Seguimiento de las visitas asociadas a cada venta hasta su cierre.</li>
@@ -387,7 +459,7 @@ footer{padding:36px 0 46px;text-align:center;color:var(--muted);font-size:14px}
 <section id="habilidades">
   <div class="wrap">
     <div class="reveal">
-      <p class="kicker">// 03 — HABILIDADES</p>
+      <p class="kicker">// 04 — HABILIDADES</p>
       <h2 class="title">Con qué trabajo</h2>
     </div>
     <div class="skills">
@@ -400,7 +472,7 @@ footer{padding:36px 0 46px;text-align:center;color:var(--muted);font-size:14px}
     </div>
 
     <div class="stats">
-      <div class="stat reveal"><b data-count="2">0</b><span>proyectos propios completos</span></div>
+      <div class="stat reveal"><b data-count="3">0</b><span>proyectos propios completos</span></div>
       <div class="stat reveal"><b data-count="3100" data-suffix="+">0</b><span>líneas de Python en Jarvis</span></div>
       <div class="stat reveal"><b data-count="2">0</b><span>certificaciones en software</span></div>
       <div class="stat reveal"><b data-count="4">0</b><span>empresas donde he trabajado</span></div>
@@ -416,7 +488,7 @@ footer{padding:36px 0 46px;text-align:center;color:var(--muted);font-size:14px}
 <section id="documentos" style="padding-top:20px">
   <div class="wrap">
     <div class="reveal">
-      <p class="kicker">// 04 — DOCUMENTOS</p>
+      <p class="kicker">// 05 — DOCUMENTOS</p>
       <h2 class="title">Respaldo</h2>
       <p class="sub">CV, título y certificaciones, listos para revisar o descargar.</p>
     </div>
@@ -441,7 +513,7 @@ footer{padding:36px 0 46px;text-align:center;color:var(--muted);font-size:14px}
       <div class="blob b1" style="top:-160px;right:-120px;background:#4f46e5"></div>
       <div class="blob b2" style="bottom:-180px;left:-80px;right:auto;background:#06b6d4"></div>
       <h2>¿Trabajamos <span class="grad">juntos?</span></h2>
-      <p>Busco un rol de desarrollo para seguir creciendo en automatización, datos e IA.</p>
+      <p>Busco un rol de desarrollo para seguir creciendo en automatización, datos e IA. También construyo portales y dashboards de ventas a medida para empresas.</p>
       <div class="buttons">
         <a class="btn primary magnetic" href="mailto:pablo.onate958@gmail.com"><span>Escríbeme</span></a>
         <a class="btn magnetic" href="tel:+56935964731"><span>+56 9 3596 4731</span></a>
@@ -459,7 +531,7 @@ footer{padding:36px 0 46px;text-align:center;color:var(--muted);font-size:14px}
   var fine = matchMedia('(pointer: fine)').matches;
 
   // typing
-  var phrases = ['> desarrollador de software junior','> automatización + inteligencia artificial','> python · javascript · sql','> convierto procesos manuales en código'];
+  var phrases = ['> desarrollador de software junior','> dashboards y portales de ventas','> automatización + inteligencia artificial','> python · javascript · sql','> convierto procesos manuales en código'];
   var el = document.getElementById('type'), pi = 0, ci = 0, del = false;
   function type(){
     var p = phrases[pi];
