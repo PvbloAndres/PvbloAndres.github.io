@@ -13,14 +13,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="VPrime">
+<meta name="apple-mobile-web-app-title" content="NovaVentas">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: sidebar de navegación fija + área de trabajo con barra superior; todo en un navy profundo con el rojo VPrime como acento de marca. */
+/* Layout: sidebar de navegación fija + área de trabajo con barra superior; todo en un navy profundo con el rojo NovaVentas como acento de marca. */
 :root {
   color-scheme: dark;
   --bg: #0a1020;
@@ -31,7 +31,7 @@
   --fg: #e9edf5;
   --fg-2: #b4bed3;
   --muted: #7f8ba6;
-  --accent: #e3262f;          /* rojo VPrime */
+  --accent: #e3262f;          /* rojo NovaVentas */
   --accent-hi: #ff4d4f;
   --accent-soft: rgba(227, 38, 47, .14);
   --cyan: #22c3e6;
@@ -803,7 +803,7 @@ body.sup-mode .bell-dot { background: var(--accent); }
   <div class="login-visual">
     <canvas id="globe" aria-hidden="true"></canvas>
     <canvas id="logo3d" aria-hidden="true"></canvas>
-    <img src="assets/vprime-logo-hd.svg" alt="VPrime" width="132" height="114">
+    <img src="assets/logo-demo.svg" alt="NovaVentas" width="132" height="114">
     <div class="login-copy">
       <div class="eyebrow" style="color:#ff9a9b">Portal interno · VTR / Claro</div>
       <h1>Todas tus ventas, <em>en un solo lugar.</em></h1>
@@ -819,9 +819,9 @@ body.sup-mode .bell-dot { background: var(--accent); }
     <form class="login-card" id="loginForm" novalidate>
       <div>
         <h2>Ingreso colaboradores</h2>
-        <div class="sub" id="lgSub">Usa tu RUT o correo corporativo @vprime.cl</div>
+        <div class="sub" id="lgSub">Usa tu RUT o correo corporativo @novaventas.cl</div>
       </div>
-      <div class="restricted"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Acceso restringido a personal de VPrime. Cada ingreso queda registrado.</span></div>
+      <div class="restricted"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Acceso restringido a personal de NovaVentas. Cada ingreso queda registrado.</span></div>
       <div class="field">
         <label for="lgUser" id="lgUserLbl">RUT o correo</label>
         <div class="input-icon"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><input class="input" id="lgUser" autocomplete="username"></div>
@@ -833,7 +833,7 @@ body.sup-mode .bell-dot { background: var(--accent); }
       </div>
       <div id="lgErr"></div>
       <button class="btn primary block" id="lgBtn" type="submit">Ingresar <svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      <div class="hint" id="lgForgotBox" style="text-align:center;color:var(--muted);font-size:12px">¿Olvidaste tu clave? Pídela a tu supervisor o a soporte@tuempresa.cl</div>
+      <div class="hint" id="lgForgotBox" style="text-align:center;color:var(--muted);font-size:12px">¿Olvidaste tu clave? Pídela a tu supervisor o a soporte@novaventas.cl</div>
     </form>
   </div>
 </section>
@@ -842,7 +842,7 @@ body.sup-mode .bell-dot { background: var(--accent); }
 <div id="app" hidden>
   <aside class="sidebar" id="sidebar">
     <div class="brand-row">
-      <a class="brand-3d" id="brand3d" href="#dashboard" aria-label="VPrime, ir al dashboard"><canvas width="92" height="92" hidden aria-hidden="true"></canvas><span class="wordmark" hidden><b>V</b>PRIME</span><img src="assets/vprime-logo-hd.svg" alt="VPrime" width="64" height="55"></a>
+      <a class="brand-3d" id="brand3d" href="#dashboard" aria-label="NovaVentas, ir al dashboard"><canvas width="92" height="92" hidden aria-hidden="true"></canvas><span class="wordmark" hidden><b>N</b>OVA</span><img src="assets/logo-demo.svg" alt="NovaVentas" width="64" height="55"></a>
       <span class="brand-tag">VTR / Claro</span>
     </div>
     <div class="cycle">
@@ -858,7 +858,7 @@ body.sup-mode .bell-dot { background: var(--accent); }
       <button class="btn sm ghost" id="logoutSide" style="justify-content:flex-start;color:#ff8f93;border-color:rgba(227,38,47,.35)"><svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Cerrar sesión</button>
       <div class="me">
         <div class="avatar">VP</div>
-        <div style="min-width:0"><b>Equipo VPrime</b><span class="role">Backoffice</span></div>
+        <div style="min-width:0"><b>Equipo NovaVentas</b><span class="role">Backoffice</span></div>
         <button class="icon-btn out" style="margin-left:auto" id="logout" title="Cerrar sesión" aria-label="Cerrar sesión"><svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
       </div>
     </div>
@@ -914,7 +914,7 @@ function cargarLib(n) {
 }
 const xlsxListo = () => cargarLib('xlsx');
 // En teléfonos (o con ahorro de datos) el logo queda como imagen HD: el 3D pesa 589 KB y a ese tamaño se ve igual.
-const logo3DOk = () => !REDUCED && !matchMedia('(max-width: 900px)').matches && !(navigator.connection && navigator.connection.saveData);
+const logo3DOk = () => false && !REDUCED && !matchMedia('(max-width: 900px)').matches && !(navigator.connection && navigator.connection.saveData);
 const fmt = n => Number(n).toLocaleString('es-CL');
 const clp = n => '$' + fmt(n);
 
@@ -1160,7 +1160,7 @@ const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
 const EST_CODES = ['en_plazo', 'fuera_plazo', 'por_vencer', 'vencida'];
 
 
-// Metas de VPrime: siempre 100% de boletas pagadas en plazo y 100% de ventas instaladas.
+// Metas de NovaVentas: siempre 100% de boletas pagadas en plazo y 100% de ventas instaladas.
 // VTR exige un mínimo de 90% en boletas: entre 90% y 100% se muestra en amarillo (cumple VTR, falta para la meta).
 const META_BOL = 1, MIN_VTR_BOL = .9, META_INST = 1;
 const toneBol = p => p == null ? 'var(--muted)' : p >= META_BOL ? 'var(--good)' : p >= MIN_VTR_BOL ? 'var(--warn)' : 'var(--crit)';
@@ -1480,7 +1480,7 @@ function alertas() {
     const rows = segRows(), by = t => rows.filter(r => r.acc && r.acc.tipo === t).length;
     add('serious', by('instalar') + by('cancelar'), 'Ventas con estado desactualizado en la planilla', 'VTR ya las tiene instaladas o canceladas, pero la planilla no. Se actualizan con un clic.', '#seguimiento', 'Actualizar', () => { SEG.soloAccion = by('instalar') ? 'instalar' : 'cancelar'; });
     add('warn', by('conflicto'), 'Planilla y VTR no coinciden', 'La planilla dice instalada o cancelada, pero VTR la tiene abierta.', '#seguimiento', 'Revisar', () => { SEG.soloAccion = 'conflicto'; });
-    add('warn', by('agregar'), 'Pedidos del maestro que faltan en la planilla', 'Están en el maestro de VPrime pero nadie los ingresó.', '#seguimiento', 'Agregar', () => { SEG.soloAccion = 'agregar'; });
+    add('warn', by('agregar'), 'Pedidos del maestro que faltan en la planilla', 'Están en el maestro de NovaVentas pero nadie los ingresó.', '#seguimiento', 'Agregar', () => { SEG.soloAccion = 'agregar'; });
     add('info', by('motivo'), 'Canceladas sin motivo', 'Sin el motivo no se puede saber por qué se caen las ventas.', '#seguimiento', 'Anotar motivos', () => { SEG.soloAccion = 'motivo'; });
   }
   // Respaldo semanal (solo para quien puede descargarlo)
@@ -1564,7 +1564,7 @@ function viewAyuda(el) {
     ${sec('Rutina diaria', ['<b>Mañana:</b> subir el maestro VTR/Claro del día (Dashboard → Actualizar maestro).', '<b>Durante el día:</b> ingresar cada venta en <b>Ingreso de ventas</b> y actualizar su estado (COMPLETADO, REAGENDADO…) directo en la tabla.', '<b>12:00, 16:00, 19:00 y 21:00:</b> enviar el corte desde <b>Reportes WhatsApp</b>.', '<b>Antes de cerrar:</b> revisar <b>Alertas</b> y <b>Seguimiento</b> para dejar la planilla al día con VTR.'])}
     ${sec('Archivos que se suben', ['<b>Maestro VTR/Claro</b> (diario): hoja con NUM_PEDIDO y estado_pedido. Alimenta Dashboard, Ventas y Seguimiento.', '<b>Planilla de emisiones</b> (solo para migrar meses anteriores): Ingreso de ventas → Importar planilla, una hoja por mes.', '<b>Reporte de 1° boleta</b> (mensual): Calidad de boletas → Subir reporte. Luego, "Pasar estados a la planilla".', 'Cualquiera de los tres se reconoce solo, aunque se suba en otra sección.'])}
     ${sec('Secciones', ['<b>Dashboard:</b> brutas, instaladas, canceladas y pendientes del maestro, metas por plaza y calidad.', '<b>Ingreso de ventas:</b> reemplaza la planilla; cada venta queda registrada con quién la ingresó y su tipo (venta normal, error TSQ, error NAP o reingreso), y tiene su ficha con instalación, reagenda, boleta e historial de cambios.', '<b>Supervisores:</b> una tarjeta por supervisor con sus ventas, instaladas, por instalar, sin agenda y canceladas; al tocarla se buscan y actualizan sus ventas.', '<b>Plan modificado:</b> si el plan o los RGU que quedaron en VTR/Claro no son los vendidos, la venta aparece en Revisiones y Alertas para apelar.', '<b>Seguimiento:</b> cruza la planilla con el maestro y propone las correcciones.', '<b>VEC, TSQ y canceladas:</b> estado de cada VEC (por pedir, pedida, aprobada, rechazada), tickets de error TSQ/NAP y motivo de cada cancelación.', '<b>Ventas:</b> los pedidos del maestro con su estado en VTR/Claro.', '<b>Calidad de boletas:</b> pagadas en plazo, cobranza del día, reclamos y calidad por supervisor y ejecutivo.', '<b>Reportes WhatsApp:</b> cortes con VIÑA // RM // OTROS listos para enviar.', '<b>Roles:</b> el <b>backoffice</b> ve y actualiza las ventas de todos los supervisores (en Ingreso de ventas, panel "Por supervisor"); cada <b>supervisor</b> ve solo "Mis ventas", sin editar; <b>solo lectura</b> mira todo sin cambiar nada.'])}
-    ${sec('Cómo se calcula', ['<b>RGU</b> = productos de la venta (Fibra 800 + TV = 2 RGU).', '<b>Calidad:</b> RGU pagados en plazo ÷ (total de RGU − pagados fuera de plazo). Meta VPrime: 100% (VTR exige mínimo 90%). Pagar hasta el día 8 (vencimiento + 8) es en plazo.', '<b>Reporte diario:</b> RGU emitidos hoy, sin remisiones. <b>Mensual:</b> sin remisiones ni ventas con error TSQ/NAP o ticket.', '<b>VIÑA</b> = supervisor Rodrigo Vera, <b>RM</b> = Camila Herrera, <b>OTROS</b> = el resto (se cambia en Reportes).'])}
+    ${sec('Cómo se calcula', ['<b>RGU</b> = productos de la venta (Fibra 800 + TV = 2 RGU).', '<b>Calidad:</b> RGU pagados en plazo ÷ (total de RGU − pagados fuera de plazo). Meta NovaVentas: 100% (VTR exige mínimo 90%). Pagar hasta el día 8 (vencimiento + 8) es en plazo.', '<b>Reporte diario:</b> RGU emitidos hoy, sin remisiones. <b>Mensual:</b> sin remisiones ni ventas con error TSQ/NAP o ticket.', '<b>VIÑA</b> = supervisor Rodrigo Vera, <b>RM</b> = Camila Herrera, <b>OTROS</b> = el resto (se cambia en Reportes).'])}
   </div>
   <div class="card" id="ayudaAdmin"></div>`;
   renderAyudaAdmin();
@@ -1572,7 +1572,7 @@ function viewAyuda(el) {
 function renderAyudaAdmin() {
   const box = $('#ayudaAdmin'); if (!box) return;
   box.innerHTML = `<h3 style="font-size:16px;margin-bottom:6px">Soporte y administración</h3>
-    <p class="note" style="margin:0 0 12px">Para crear usuarios, cambiar permisos o reportar un problema, contacta a quien administra el portal en VPrime.</p>
+    <p class="note" style="margin:0 0 12px">Para crear usuarios, cambiar permisos o reportar un problema, contacta a quien administra el portal en NovaVentas.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn sm" id="ayInstall">${ic('download')}Instalar en el teléfono</button>${STANDALONE ? `<button class="btn sm" id="ayClave">${ic('shield')}Cambiar mi contraseña</button>` : ''}</div>
     ${puedeRespaldar() ? `<div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
       <h3 style="font-size:15px;margin-bottom:4px">Respaldo completo</h3>
@@ -1581,7 +1581,7 @@ function renderAyudaAdmin() {
       <div id="bkMsg" class="note" style="margin-top:8px">${RESPALDO.ult ? `Último respaldo: ${fmtFecha(isoOf(new Date(RESPALDO.ult.en)))}${RESPALDO.ult.por ? ' por ' + esc(RESPALDO.ult.por) : ''}.` : ''}</div></div>` : ''}
     ${STANDALONE && ROLE.rol === 'admin' && !ROLE.preview ? `<div class="dt-box"><h3 style="font-size:15px;margin-bottom:4px">Cambiar la contraseña de un usuario</h3>
       <p class="note" style="margin:0 0 12px">Si a alguien no le llega el correo de "¿Olvidaste tu contraseña?", asígnale aquí una clave temporal y díctasela. Después puede cambiarla él mismo.</p>
-      <form id="ccForm" class="form-grid" novalidate style="align-items:end"><div class="field"><label for="ccMail">Correo del usuario</label><input class="input" type="email" id="ccMail" autocomplete="off" placeholder="nombre@vprime.cl"></div>
+      <form id="ccForm" class="form-grid" novalidate style="align-items:end"><div class="field"><label for="ccMail">Correo del usuario</label><input class="input" type="email" id="ccMail" autocomplete="off" placeholder="nombre@novaventas.cl"></div>
         <div class="field"><label for="ccPass">Clave temporal (mínimo 8)</label><input class="input mono" type="text" id="ccPass" autocomplete="off"></div>
         <div class="field"><button class="btn sm" type="button" id="ccGen">Generar una</button></div>
         <div class="field"><button class="btn sm primary" type="submit" id="ccSave">Cambiar contraseña</button></div></form><div id="ccMsg" class="note" style="margin-top:8px"></div></div>` : ''}
@@ -1621,7 +1621,7 @@ const fechaHora = iso => iso ? `${fmtFecha(isoOf(new Date(iso)))} ${new Date(iso
 function datosPanelHTML() {
   if (!verEstadoDatos()) return '';
   const head = `<h3 style="font-size:15px;margin-bottom:4px">Dónde quedan guardadas las ventas</h3>
-    <p class="note" style="margin:0 0 12px">Cada venta se guarda en la base de datos de VPrime (Supabase · PostgreSQL) en el momento en que se ingresa o se modifica, no en el teléfono ni en el computador. Cada cambio deja guardada la versión anterior, y la base hace una copia completa automática todas las noches.</p>`;
+    <p class="note" style="margin:0 0 12px">Cada venta se guarda en la base de datos de NovaVentas (Supabase · PostgreSQL) en el momento en que se ingresa o se modifica, no en el teléfono ni en el computador. Cada cambio deja guardada la versión anterior, y la base hace una copia completa automática todas las noches.</p>`;
   const wrap = h => `<div class="dt-box" id="datosBox">${head}${h}</div>`;
   if (!DATOS.e && !DATOS.err) { datosCargar().then(() => { if (currentView() === 'ayuda') renderAyudaAdmin(); }); return wrap('<p class="note">Consultando la base de datos…</p>'); }
   if (DATOS.err === 'falta') return wrap(`<div class="restricted">${ic('alertc')}<span><b>Falta activar los respaldos automáticos en la base.</b> ${ROLE.rol === 'admin' ? 'Abre Supabase → SQL Editor, pega el archivo <span class="mono">supabase/schema.sql</span> completo y presiona Run. Se puede ejecutar de nuevo sin perder datos.' : 'Pídele a un administrador que lo active.'}</span></div>`);
@@ -1717,8 +1717,8 @@ async function respaldo(tipo, dia) {
     const n = `${fmt(B.colecciones.emisiones.length)} ventas, ${fmt(B.colecciones.calidad.length)} períodos de calidad, ${fmt(B.colecciones.reclamos.length)} reclamos, ${fmt(B.colecciones.maestro.length)} maestros`;
     msg('Preparando el archivo…');
     const r = tipo === 'json'
-      ? await dl.save({ filename: `Respaldo_VPrime_${hoy}.json`, data: new TextEncoder().encode(JSON.stringify(B)) })
-      : await dl.save({ filename: `Respaldo_VPrime_${hoy}.xlsx`, data: new Uint8Array(XLSX.write(respaldoLibro(B), { bookType: 'xlsx', type: 'array', compression: true })) });
+      ? await dl.save({ filename: `Respaldo_NovaVentas_${hoy}.json`, data: new TextEncoder().encode(JSON.stringify(B)) })
+      : await dl.save({ filename: `Respaldo_NovaVentas_${hoy}.xlsx`, data: new Uint8Array(XLSX.write(respaldoLibro(B), { bookType: 'xlsx', type: 'array', compression: true })) });
     msg(r && r.status === 'saved' ? `Respaldo descargado: ${n}.` : `Descarga cancelada (${n}).`);
     if (r && r.status === 'saved') { try { await COB.db.doc('config/respaldo').set({ en: new Date().toISOString(), por: USER.name || '', tipo, ventas: B.colecciones.emisiones.length }); } catch (e) { /* sin permiso para anotar */ } }
   } catch (e) { msg('No se pudo armar el respaldo: ' + ((e && e.message) || 'error de conexión') + '. Intenta de nuevo.'); }
@@ -2031,7 +2031,7 @@ function viewDashboardReal(el) {
   </div>
   <div id="limDash"></div>
   ${M && (M.instalada.length || M.emision.length) ? `<div class="card">
-    <div class="card-h"><div><h3>Avance de metas por plaza</h3><p>${porRgu ? '' : 'Las metas son en RGU · '}${dias.mes ? `Día hábil ${dias.reales} de ${dias.mes} · quedan ${dias.restantes}` : 'Metas de la hoja dinámica'}${state.brand !== 'todas' ? ' · las metas son del total VPrime (VTR + Claro)' : ''}</p></div></div>
+    <div class="card-h"><div><h3>Avance de metas por plaza</h3><p>${porRgu ? '' : 'Las metas son en RGU · '}${dias.mes ? `Día hábil ${dias.reales} de ${dias.mes} · quedan ${dias.restantes}` : 'Metas de la hoja dinámica'}${state.brand !== 'todas' ? ' · las metas son del total NovaVentas (VTR + Claro)' : ''}</p></div></div>
     <div style="display:grid;gap:18px">${[['Instalación', M.instalada, 'inst'], ['Emisión (brutas)', M.emision, 'brutas']].filter(x => x[1].length).map(([t, list, k]) => maeMetaTable(t, list, k, A.rows, dias)).join('')}</div>
   </div>` : ''}
   <div class="card" id="cobDash"></div>
@@ -3146,7 +3146,7 @@ async function emiExport() {
   const ws = XLSX.utils.aoa_to_sheet(rows, { cellDates: true, dateNF: 'dd/mm/yyyy' });
   ws['!cols'] = [16, 12, 13, 24, 22, 24, 16, 30, 18, 12, 10, 10, 22, 22, 22, 12, 12, 12, 10, 14, 16, 16, 16, 18].map(w => ({ wch: w }));
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, mesLabel(EMI.mes).slice(0, 31));
-  try { const r = await dl.save({ filename: `Emisiones_ventas_VPrime_${EMI.mes}.xlsx`, data: new Uint8Array(XLSX.write(wb, { bookType: 'xlsx', type: 'array' })) }); if (r && r.status === 'saved') toast('Excel descargado', 'download'); }
+  try { const r = await dl.save({ filename: `Emisiones_ventas_NovaVentas_${EMI.mes}.xlsx`, data: new Uint8Array(XLSX.write(wb, { bookType: 'xlsx', type: 'array' })) }); if (r && r.status === 'saved') toast('Excel descargado', 'download'); }
   catch (e) { if (e && e.code === 'unavailable') toast('Las descargas no están disponibles en esta vista.', 'alertc'); }
 }
 
@@ -3351,7 +3351,7 @@ async function segRun(list, label) {
 
 
 
-/* ---------- LOGO VPRIME EN 3D (Three.js) ---------- */
+/* ---------- LOGO NOVAVENTAS EN 3D (Three.js) ---------- */
 // Esfera roja con estela blanca y flecha, como el logo. Devuelve una función para detenerla, o null si no hay WebGL.
 function makeLogo3D(canvas, opt = {}) {
   if (!window.THREE || !canvas) return null;
@@ -3505,26 +3505,26 @@ function updateBottomNav(cur) {
   });
 }
 $('#bnMore').addEventListener('click', () => $('#sidebar').classList.toggle('open'));
-const PORTAL_URL = window.VP_STANDALONE ? ((window.VPRIME_CONFIG || {}).appUrl || location.origin + location.pathname) : 'https://claude.ai/artifact/BZRdoPNhUP4QLB89qohyPU';
+const PORTAL_URL = window.VP_STANDALONE ? ((window.NOVAVENTAS_CONFIG || {}).appUrl || location.origin + location.pathname) : 'https://claude.ai/artifact/BZRdoPNhUP4QLB89qohyPU';
 function openInstall() {
   const link = PORTAL_URL;
   const enTelefono = matchMedia('(max-width: 900px)').matches;
   openDrawer(`
-  <div class="drawer-h"><div style="flex:1"><div class="eyebrow">Portal VPrime</div><h3>Tenerlo como app en el teléfono</h3></div><button class="icon-btn" data-close aria-label="Cerrar">${ic('x')}</button></div>
+  <div class="drawer-h"><div style="flex:1"><div class="eyebrow">Portal NovaVentas</div><h3>Tenerlo como app en el teléfono</h3></div><button class="icon-btn" data-close aria-label="Cerrar">${ic('x')}</button></div>
   <div class="drawer-b install-steps">
-    <p style="margin:0;color:var(--fg-2)">El portal queda como un ícono en la pantalla de inicio y se abre como una app. ${window.VP_STANDALONE ? 'Cada colaborador entra con el correo y la contraseña que le crea un administrador de VPrime.' : 'Cada colaborador entra con su cuenta de claude.ai. Antes, quien administra el portal tiene que invitarlo con ese mismo correo desde <b>Compartir</b>; si no, al abrir el link aparece "Página no encontrada".'}</p>
-    ${window.VP_STANDALONE && (window.VPRIME_CONFIG || {}).apkUrl ? `<a class="btn primary" href="${esc(window.VPRIME_CONFIG.apkUrl)}" target="_blank" rel="noopener">${ic('download')}Descargar app para Android (APK)</a>` : ''}
-    ${enTelefono ? '' : `<div class="os-card" style="justify-items:center;text-align:center"><h4>${ic('eye')}Escanea con la cámara del teléfono</h4><div id="instQR" role="img" aria-label="Código QR del portal VPrime" style="width:232px;height:232px;border-radius:14px;background:#fff;padding:8px;display:grid;place-items:center"><img src="assets/qr-portal-vprime.png" alt="" width="216" height="216"></div><span class="note">Se abre el portal en el teléfono; después sigue los pasos de abajo.</span></div>`}
+    <p style="margin:0;color:var(--fg-2)">El portal queda como un ícono en la pantalla de inicio y se abre como una app. ${window.VP_STANDALONE ? 'Cada colaborador entra con el correo y la contraseña que le crea un administrador de NovaVentas.' : 'Cada colaborador entra con su cuenta de claude.ai. Antes, quien administra el portal tiene que invitarlo con ese mismo correo desde <b>Compartir</b>; si no, al abrir el link aparece "Página no encontrada".'}</p>
+    ${window.VP_STANDALONE && (window.NOVAVENTAS_CONFIG || {}).apkUrl ? `<a class="btn primary" href="${esc(window.NOVAVENTAS_CONFIG.apkUrl)}" target="_blank" rel="noopener">${ic('download')}Descargar app para Android (APK)</a>` : ''}
+    ${enTelefono ? '' : `<div class="os-card" style="justify-items:center;text-align:center"><h4>${ic('eye')}Escanea con la cámara del teléfono</h4><div id="instQR" role="img" aria-label="Código QR del portal NovaVentas" style="width:232px;height:232px;border-radius:14px;background:#fff;padding:8px;display:grid;place-items:center"><img src="assets/qr-portal-novaventas.png" alt="" width="216" height="216"></div><span class="note">Se abre el portal en el teléfono; después sigue los pasos de abajo.</span></div>`}
     <div class="os-card"><h4>${ic('download')}iPhone (Safari)</h4><ol>
       <li>Abre el link del portal en <b>Safari</b> e inicia sesión.</li>
       <li>Toca el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</li>
-      <li>Elige <b>Agregar a pantalla de inicio</b>, ponle de nombre <b>VPrime</b> y toca <b>Agregar</b>.</li></ol></div>
+      <li>Elige <b>Agregar a pantalla de inicio</b>, ponle de nombre <b>NovaVentas</b> y toca <b>Agregar</b>.</li></ol></div>
     <div class="os-card"><h4>${ic('download')}Android (Chrome)</h4><ol>
       <li>Abre el link del portal en <b>Chrome</b> e inicia sesión.</li>
       <li>Toca el menú <b>⋮</b> arriba a la derecha.</li>
       <li>Elige <b>Agregar a la pantalla principal</b> (o <b>Instalar app</b> si aparece) y confirma.</li></ol></div>
     <div class="field"><label for="instLink">Link del portal</label><div class="copy-row"><input class="input" id="instLink" readonly value="${esc(link)}"><button class="btn sm" id="instCopy">Copiar</button></div><span class="hint">Puedes enviarlo por WhatsApp o correo a tu equipo.</span></div>
-    <p class="note" style="margin:0">El ícono puede verse con el logo de Claude en vez del de VPrime: el portal vive dentro de claude.ai. Funciona igual.</p>
+    <p class="note" style="margin:0">El ícono puede verse con el logo de Claude en vez del de NovaVentas: el portal vive dentro de claude.ai. Funciona igual.</p>
   </div>`);
   const qbox = $('#instQR');
   if (qbox && window.QRCode && window.VP_STANDALONE) { qbox.innerHTML = ''; new QRCode(qbox, { text: link, width: 216, height: 216, colorDark: '#0a1020', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M }); }
@@ -3823,13 +3823,13 @@ function renderCalBody() {
   const tone = toneBol;
   const pctPlazo = venc ? g('en_plazo') / venc : null;
   const totR = rows.reduce((t, x) => t + rgu(x), 0);
-  // Indicador oficial: RGU pagados en plazo ÷ (total de RGU − pagados fuera de plazo). Meta VPrime 100% (VTR exige 90%).
+  // Indicador oficial: RGU pagados en plazo ÷ (total de RGU − pagados fuera de plazo). Meta NovaVentas 100% (VTR exige 90%).
   const META = META_BOL, fueraR = g('fuera') + g('fuera_nc'), baseR = totR - fueraR;
   const pctTotal = baseR ? g('en_plazo') / baseR : null;
   const faltan = Math.max(0, Math.ceil(META * baseR - 1e-9) - g('en_plazo'));
   const montoTot = rows.reduce((t, x) => t + x.r[CI.monto], 0);
   box.innerHTML = `
-  <div class="prev-banner">${ic('sheet')}<div class="grow"><b>${esc(A.archivo || '')}</b> · ${fmt(A.rows.length)} boletas de ventas instaladas en ${PERIODO_LABEL(A.id).toLowerCase()}${A.soloVista ? ' · <b style="color:var(--warn)">solo en esta pantalla</b>' : ''}<br><span class="note">Los estados se recalculan con la fecha de corte: pagó hasta el día 8 = en plazo; sin pago antes del vencimiento = pendiente; entre vencimiento y día 8 = pendiente vencido; después del día 8 = no pagado. La calidad se mide en RGU: pagados en plazo sobre el total del mes, sin contar los pagados fuera de plazo. Meta VPrime: 100% (VTR exige mínimo 90%).</span></div>
+  <div class="prev-banner">${ic('sheet')}<div class="grow"><b>${esc(A.archivo || '')}</b> · ${fmt(A.rows.length)} boletas de ventas instaladas en ${PERIODO_LABEL(A.id).toLowerCase()}${A.soloVista ? ' · <b style="color:var(--warn)">solo en esta pantalla</b>' : ''}<br><span class="note">Los estados se recalculan con la fecha de corte: pagó hasta el día 8 = en plazo; sin pago antes del vencimiento = pendiente; entre vencimiento y día 8 = pendiente vencido; después del día 8 = no pagado. La calidad se mide en RGU: pagados en plazo sobre el total del mes, sin contar los pagados fuera de plazo. Meta NovaVentas: 100% (VTR exige mínimo 90%).</span></div>
     <div class="field" style="min-width:170px"><label for="calCorte">Fecha de corte</label><input class="input" type="date" id="calCorte" value="${corte}" style="height:38px"></div></div>
   <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))">
     <div class="kpi"><div class="eyebrow">Total del mes (RGU)</div><div class="big" data-count="${totR}">0</div><div class="delta" style="color:var(--muted)">${fmt(rows.length)} boletas · ${clp(montoTot)}<br>Para la meta se descuentan ${fmt(fueraR)} RGU pagados fuera de plazo</div></div>
@@ -3993,11 +3993,11 @@ async function calExportReclamos() {
   const dl = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('downloads') : null;
   if (!dl || !(await xlsxListo())) { toast('La descarga funciona en el portal publicado.', 'alertc'); return; }
   const rows = [['MARCA', 'MES DE EVALUACION', 'RUT CLIENTE', 'NUMERO DE PEDIDO', 'OPERADOR', 'NÚMERO DE BOLETA', 'FECHADEVENCIMIENTO', 'FECHA DE PAGO', 'MOTIVO', 'OBSERVACION', 'ZONA', 'CORRECCION PEDIDA', 'ESTADO RECLAMO']];
-  Object.values(CAL.rec).sort((a, b) => (a.periodo || '').localeCompare(b.periodo || '')).forEach(x => rows.push([x.marca, Number(x.periodo) || x.periodo, x.rut, x.pedido, 'VPRIME', 1, x.venc ? isoToDate(x.venc) : '', x.fpago ? isoToDate(x.fpago) : '', x.motivo, x.observacion, x.zona, x.cambio, x.estado]));
+  Object.values(CAL.rec).sort((a, b) => (a.periodo || '').localeCompare(b.periodo || '')).forEach(x => rows.push([x.marca, Number(x.periodo) || x.periodo, x.rut, x.pedido, 'NOVAVENTAS', 1, x.venc ? isoToDate(x.venc) : '', x.fpago ? isoToDate(x.fpago) : '', x.motivo, x.observacion, x.zona, x.cambio, x.estado]));
   const ws = XLSX.utils.aoa_to_sheet(rows, { cellDates: true, dateNF: 'dd/mm/yyyy' });
   ws['!cols'] = [8, 12, 13, 16, 10, 10, 14, 12, 30, 50, 8, 24, 14].map(w => ({ wch: w }));
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Reclamos');
-  try { const r = await dl.save({ filename: `Reclamos_boletas_VPrime_${isoOf(new Date())}.xlsx`, data: new Uint8Array(XLSX.write(wb, { bookType: 'xlsx', type: 'array' })) }); if (r && r.status === 'saved') toast('Reclamos descargados', 'download'); } catch (e) { /* cancelado */ }
+  try { const r = await dl.save({ filename: `Reclamos_boletas_NovaVentas_${isoOf(new Date())}.xlsx`, data: new Uint8Array(XLSX.write(wb, { bookType: 'xlsx', type: 'array' })) }); if (r && r.status === 'saved') toast('Reclamos descargados', 'download'); } catch (e) { /* cancelado */ }
 }
 // Copia vencimiento, día 8, monto, estado y fecha de pago de VTR a la ficha de cada venta en la planilla.
 function calBoletaPatch(r) { return { venc: r[CI.venc], plazo: r[CI.dia8], monto: r[CI.monto], estado: BE[beKey(r[CI.est])].vtr || r[CI.est], pagada: r[CI.fpago], nota: r[CI.obs] }; }
@@ -4056,7 +4056,7 @@ function repMensaje(dia, mes, fecha, corte) {
     `• VIÑA (${REP.vina}): *${dia.vina}* RGU`,
     `• RM (${REP.rm}): *${dia.rm}* RGU`,
     `• OTROS: *${dia.otros}* RGU`,
-    `*TOTAL EMISIONES VPRIME: ${dia.total} RGU*`,
+    `*TOTAL EMISIONES NOVAVENTAS: ${dia.total} RGU*`,
     '',
     '⚠️ Es importante mencionar que *NO hay reingresos* en el total informado: se reportan solo ventas nuevas emitidas *HOY* a esta hora.',
     '',
@@ -4064,7 +4064,7 @@ function repMensaje(dia, mes, fecha, corte) {
     `• VIÑA: *${mes.vina}* RGU`,
     `• RM: *${mes.rm}* RGU`,
     `• OTROS: *${mes.otros}* RGU`,
-    `*TOTAL EMISIONES VPRIME: ${mes.total} RGU*`,
+    `*TOTAL EMISIONES NOVAVENTAS: ${mes.total} RGU*`,
     '',
     cierre ? `CERRAMOS CON UN TOTAL DE *${dia.total} RGU* 🍀🍀 Que descansen, hasta mañana 🍀🍀` : `A esta hora llevamos *${dia.total} RGU* emitidos hoy 💪`,
   ].join('\n');
@@ -4109,7 +4109,7 @@ async function renderRepBody() {
       <tr style="cursor:default;background:${claro}"><td>TOTAL PRODUCTOS ${esc(REP.vina.toUpperCase())} · V REGIÓN</td><td class="num" style="text-align:center;font-size:16px">${t.vina}</td></tr>
       <tr style="cursor:default;background:${claro}"><td>TOTAL PRODUCTOS ${esc(REP.rm.toUpperCase())} · RM</td><td class="num" style="text-align:center;font-size:16px">${t.rm}</td></tr>
       <tr style="cursor:default;background:${claro}"><td>OTROS</td><td class="num" style="text-align:center;font-size:16px">${t.otros}</td></tr>
-      <tr style="cursor:default;background:${fuerte}"><td><b>TOTAL EMISIONES VPRIME</b></td><td class="num" style="text-align:center;font:800 20px var(--font-display)">${t.total}</td></tr>
+      <tr style="cursor:default;background:${fuerte}"><td><b>TOTAL EMISIONES NOVAVENTAS</b></td><td class="num" style="text-align:center;font:800 20px var(--font-display)">${t.total}</td></tr>
     </tbody></table></div></div>`;
   const ventasDia = lista.filter(v => v.fecha === REP.fecha).length;
   box.innerHTML = `
@@ -4141,7 +4141,7 @@ async function repImagen(dia, mes, mesKey) {
   const x = c.getContext('2d'); x.scale(2, 2);
   x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
   const tabla = (ox, titulo, t, head, claro, fuerte) => {
-    const w = 590, rh = 44; const filas = [[`TOTAL PRODUCTOS ${REP.vina.toUpperCase()} · V REGIÓN`, t.vina], [`TOTAL PRODUCTOS ${REP.rm.toUpperCase()} · RM`, t.rm], ['OTROS', t.otros], ['TOTAL EMISIONES VPRIME', t.total]];
+    const w = 590, rh = 44; const filas = [[`TOTAL PRODUCTOS ${REP.vina.toUpperCase()} · V REGIÓN`, t.vina], [`TOTAL PRODUCTOS ${REP.rm.toUpperCase()} · RM`, t.rm], ['OTROS', t.otros], ['TOTAL EMISIONES NOVAVENTAS', t.total]];
     x.fillStyle = head; x.fillRect(ox, 30, w, rh); x.fillStyle = '#fff'; x.font = '700 16px Inter, Arial, sans-serif'; x.textBaseline = 'middle'; x.fillText(titulo, ox + 14, 30 + rh / 2);
     filas.forEach(([l, v], i) => {
       const y = 30 + rh * (i + 1), last = i === 3;
@@ -4153,12 +4153,12 @@ async function repImagen(dia, mes, mesKey) {
   };
   tabla(20, `TOTAL MENSUAL SIN REMISIÓN NI TICKET TSQ · ${mesLabel(mesKey).toUpperCase()}`, mes, '#38761d', '#d9ead3', '#93c47d');
   tabla(630, `TOTAL DIARIO SIN REMISIÓN · ${fmtFecha(REP.fecha)} · ${REP.corte} HRS`, dia, '#990000', '#f4cccc', '#ffc000');
-  x.fillStyle = '#666'; x.font = '500 13px Inter, Arial, sans-serif'; x.fillText('VPrime · valores en RGU (productos) · generado desde el portal', 20, H - 24);
+  x.fillStyle = '#666'; x.font = '500 13px Inter, Arial, sans-serif'; x.fillText('NovaVentas · valores en RGU (productos) · generado desde el portal', 20, H - 24);
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));
-  const nombre = `Reporte_VPrime_${REP.fecha}_${REP.corte.replace(':', '')}.png`;
+  const nombre = `Reporte_NovaVentas_${REP.fecha}_${REP.corte.replace(':', '')}.png`;
   try {
     const file = new File([blob], nombre, { type: 'image/png' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Reporte VPrime' }); return; }
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Reporte NovaVentas' }); return; }
   } catch (e) { if (e && e.name === 'AbortError') return; }
   const dl = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('downloads') : null;
   if (!dl) { toast('La descarga de la imagen funciona en el portal publicado o en la app.', 'alertc'); return; }
@@ -4842,7 +4842,7 @@ const STANDALONE = !!window.VP_STANDALONE;
 if (STANDALONE) {
   $('#lgSub').textContent = 'Entra con el correo y la contraseña que te entregó tu supervisor.';
   $('#lgUserLbl').textContent = 'Correo';
-  $('#lgUser').value = ''; $('#lgUser').type = 'email'; $('#lgUser').setAttribute('autocomplete', 'email'); $('#lgUser').placeholder = 'nombre@vprime.cl';
+  $('#lgUser').value = ''; $('#lgUser').type = 'email'; $('#lgUser').setAttribute('autocomplete', 'email'); $('#lgUser').placeholder = 'nombre@novaventas.cl';
   $('#lgPass').value = '';
   $('#lgHint').hidden = true;
   $('#lgForgotBox').innerHTML = '<button type="button" class="btn ghost sm" id="lgForgot" style="height:auto;padding:4px 8px;color:var(--cyan)">¿Olvidaste tu contraseña?</button>';
@@ -4883,7 +4883,7 @@ function pedirRecuperacion(email0) {
   const d = document.createElement('div'); d.id = 'logoutDlg'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true');
   d.innerHTML = `<form class="box" id="rcvForm" novalidate style="text-align:left;justify-items:stretch"><h3 style="text-align:center">Recuperar contraseña</h3>
     <p style="margin:0">Escribe tu correo y te enviaremos un enlace para crear una contraseña nueva.</p>
-    <div class="field"><label for="rcvMail">Correo</label><input class="input" type="email" id="rcvMail" autocomplete="email" value="${esc(email0 || '')}" placeholder="nombre@vprime.cl"></div>
+    <div class="field"><label for="rcvMail">Correo</label><input class="input" type="email" id="rcvMail" autocomplete="email" value="${esc(email0 || '')}" placeholder="nombre@novaventas.cl"></div>
     <div id="rcvMsg"></div>
     <div class="row"><button type="button" class="btn ghost" id="rcvNo">Cerrar</button><button type="submit" class="btn primary" id="rcvSi">Enviar enlace</button></div>
     <p class="note" style="margin:0">Revisa también la carpeta de spam. Si no te llega en unos minutos, pide a un administrador del portal que te asigne una clave temporal.</p></form>`;
@@ -4991,7 +4991,7 @@ if (STANDALONE) {
 })();
 </script>
 <style>
-#installBtn, #installHint, #chgPass { display: none !important; }
+#installBtn, #installHint, #chgPass, #globe, #logo3d { display: none !important; }
 .demo-pill { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 80; display: flex; gap: 10px; align-items: center; padding: 8px 10px 8px 16px; border-radius: 999px; background: rgba(10, 16, 32, .92); border: 1px solid #34476f; color: #dbe3f3; font: 600 13px Inter, system-ui, sans-serif; box-shadow: 0 12px 30px -10px rgba(0, 0, 0, .8); white-space: nowrap; }
 .demo-pill a { color: #0a1020; background: #22c3e6; padding: 6px 12px; border-radius: 999px; text-decoration: none; }
 @media (max-width: 900px) { .demo-pill { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); font-size: 12px; } .demo-pill span { display: none; } }

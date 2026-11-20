@@ -70,7 +70,7 @@
   const fila = (v, estado, planMae, prodsMae, rguMae) => {
     const g = rguMae || v.cantidad, canc = estado === 'Cancelado' ? g : 0, ins = estado === 'Completada' ? g : 0;
     return [v.pedido, v.rut, v.marca === 'Claro' ? 'CLARO' : 'VTR', estado, v.fecha, estado === 'Completada' ? (v.instalado || v.fecha) : '', v.regMae || 'REGION METROPOLITANA', v.comuna,
-      pick(BACKOFFICE), 'Coordinación VTR', planMae, prodsMae, g, g, canc, g - canc, ins, 1, canc ? 0 : 1, ins ? 1 : 0, canc ? 1 : 0, 'FTTH', 'Alta', 'VPRIME'];
+      pick(BACKOFFICE), 'Coordinación VTR', planMae, prodsMae, g, g, canc, g - canc, ins, 1, canc ? 0 : 1, ins ? 1 : 0, canc ? 1 : 0, 'FTTH', 'Alta', 'NOVAVENTAS'];
   };
   ventas.filter(v => v.mes === MES && v.fecha < HOY).forEach((v, i) => {
     const P = PRODUCTOS.find(p => p[0] === v.producto), c = COMUNAS.concat(SUR).find(x => x[0] === v.comuna);
