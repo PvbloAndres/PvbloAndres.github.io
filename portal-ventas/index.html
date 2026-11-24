@@ -610,6 +610,13 @@ a.tel { display: inline-flex; align-items: center; gap: 5px; color: var(--cyan);
 a.tel svg { width: 14px; height: 14px; } a.tel:hover { text-decoration: underline; }
 .sp-lim { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--fg-2); padding-top: 6px; border-top: 1px dashed var(--line); } .sp-lim small { color: var(--muted); }
 .vend-t td { vertical-align: top; }
+.drop { position: relative; display: grid; justify-items: center; gap: 10px; text-align: center; padding: 48px 24px; border: 2px dashed color-mix(in srgb, var(--cyan) 55%, transparent); border-radius: 22px; background: color-mix(in srgb, var(--cyan) 6%, var(--panel)); cursor: pointer; margin-bottom: 18px; transition: background .2s, border-color .2s; }
+.drop:hover, .drop.over, .drop:focus-visible { background: color-mix(in srgb, var(--cyan) 14%, var(--panel)); border-color: var(--cyan); outline: none; }
+.drop b { font: 700 20px var(--font-display); }
+.drop-ic svg { width: 44px; height: 44px; color: var(--cyan); }
+.sub-h { display: flex; gap: 10px; align-items: center; font-size: 17px; margin-bottom: 8px; } .sub-h svg { width: 20px; height: 20px; color: var(--cyan); }
+.sub-last { display: grid; gap: 2px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; } .sub-last span { color: var(--muted); }
+#subMsg .restricted { margin-bottom: 18px; }
 .lim-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .lim { display: grid; gap: 8px; text-align: left; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); font: inherit; }
 button.lim { cursor: pointer; } button.lim[aria-pressed="true"] { border-color: var(--t); box-shadow: 0 0 0 2px color-mix(in srgb, var(--t) 30%, transparent); }
@@ -1012,6 +1019,7 @@ const state = { brand: 'todas', filter: null, search: '', comuna: '', ej: '', pa
 const NAV = [
   { id: 'dashboard', n: 'Dashboard', i: 'home' },
   { id: 'ingreso', n: 'Ingreso de ventas', i: 'plus' },
+  { id: 'subir', n: 'Subir archivos', i: 'upload' },
   { id: 'supervisores', n: 'Supervisores', i: 'user' },
   { id: 'seguimiento', n: 'Seguimiento', i: 'refresh', seg: true },
   { id: 'vec', n: 'VEC, TSQ y canceladas', i: 'tri' },
@@ -1022,7 +1030,7 @@ const NAV = [
   { id: 'alertas', n: 'Alertas', i: 'bell', alerts: true },
   { id: 'ayuda', n: 'Ayuda', i: 'help' },
 ];
-const TITLES = { reportes: 'Reportes WhatsApp', supervisor: 'Mis ventas', supervisores: 'Supervisores', dashboard: 'Dashboard', ingreso: 'Ingreso de ventas', seguimiento: 'Seguimiento de ventas', vec: 'VEC, TSQ y canceladas', ventas: 'Ventas', calidad: 'Calidad de boletas', alertas: 'Alertas', ayuda: 'Ayuda' };
+const TITLES = { reportes: 'Reportes WhatsApp', supervisor: 'Mis ventas', supervisores: 'Supervisores', subir: 'Subir archivos', dashboard: 'Dashboard', ingreso: 'Ingreso de ventas', seguimiento: 'Seguimiento de ventas', vec: 'VEC, TSQ y canceladas', ventas: 'Ventas', calidad: 'Calidad de boletas', alertas: 'Alertas', ayuda: 'Ayuda' };
 
 function renderNav(cur) {
   const segN = segPendientes();
@@ -1058,7 +1066,7 @@ function renderView(view, el) {
     if (st === 'loading') return viewLoading(el);
   }
   if (view === 'dashboard' || view === 'ventas') return viewSinMaestro(el, view);
-  ({ ingreso: viewEmisiones, supervisores: viewSupervisores, seguimiento: viewSeguimiento, vec: viewGestion, supervisor: viewSupervisor, calidad: viewCalidadReal, reportes: viewReportes, alertas: viewAlertas, ayuda: viewAyuda }[view] || viewSinMaestro)(el, view);
+  ({ ingreso: viewEmisiones, subir: viewSubir, supervisores: viewSupervisores, seguimiento: viewSeguimiento, vec: viewGestion, supervisor: viewSupervisor, calidad: viewCalidadReal, reportes: viewReportes, alertas: viewAlertas, ayuda: viewAyuda }[view] || viewSinMaestro)(el, view);
 }
 // Vuelve a dibujar la vista actual cuando llegan datos nuevos (sin mover el scroll).
 function renderCurrent() {
@@ -1983,8 +1991,8 @@ function limitesDe(inst, emit = []) {
   const meta = metaMensual(), rg = a => a.reduce((t, v) => t + (Number(v.cantidad) || 0), 0), totInst = rg(inst);
   return Object.fromEntries(Object.entries(LIMITES).map(([k, L]) => { const f = k === 'cuest' ? esCuest : esFdz, arr = inst.filter(f), r = rg(arr), tope = Math.floor(meta * L.pct);
     const pend = rg(emit.filter(v => !esRemision(v) && f(v) && ['', 'REAGENDADO', 'EN EJECUCION', 'SIN AGENDA'].includes(v.inst || '')));
-    const ingresadas = emit.filter(f).length, reing = emit.filter(v => f(v) && esRemision(v)).length;
-    return [k, { ...L, arr, rgu: r, n: arr.length, ingresadas, reing, meta, tope, totInst, pend, pctMeta: meta ? r / meta : 0, uso: tope ? r / tope : 0 }]; }));
+    const ingresadas = emit.filter(f).length, reing = emit.filter(v => f(v) && esRemision(v)).length, sinMarca = k === 'fdz' ? emit.filter(v => esFdz(v) && !TXT_FDZ.test(textoVenta(v))).length : 0;
+    return [k, { ...L, arr, rgu: r, n: arr.length, ingresadas, reing, sinMarca, meta, tope, totInst, pend, pctMeta: meta ? r / meta : 0, uso: tope ? r / tope : 0 }]; }));
 }
 function limitesCard(list, filtrable) {
   const inst = instaladasMes().filter(v => state.brand === 'todas' || v.marca === state.brand), X = limitesDe(inst, list), tone = u => u >= 1 ? 'var(--crit)' : u >= .8 ? 'var(--warn)' : 'var(--good)';
@@ -1993,7 +2001,7 @@ function limitesCard(list, filtrable) {
       <span class="lim-h"><b>${x.l}</b><span class="lim-pct">${(x.pctMeta * 100).toLocaleString('es-CL', { maximumFractionDigits: 1 })}%<small> de ${fmt(x.meta)}</small></span></span>
       <span class="lim-bar" aria-hidden="true"><i style="width:${Math.min(100, x.uso * 100)}%"></i></span>
       <span class="lim-s"><span><b>${fmt(x.rgu)} de ${fmt(x.tope)} RGU instalados</b> permitidos (${Math.round(x.pct * 100)}% de ${fmt(x.meta)})</span><span>${x.uso >= 1 ? `<b style="color:var(--crit)">Pasado por ${fmt(x.rgu - x.tope)} RGU</b>` : `Quedan <b>${fmt(x.tope - x.rgu)} RGU</b>`}</span></span>
-      <span class="sub"><b style="color:var(--fg)">${fmt(x.ingresadas)} ingresada${x.ingresadas === 1 ? '' : 's'} este mes</b>${x.reing ? ` (${fmt(x.reing)} reingreso${x.reing === 1 ? '' : 's'}, no suma${x.reing === 1 ? '' : 'n'} al límite)` : ''} · ${fmt(x.n)} instalada${x.n === 1 ? '' : 's'}${x.pend ? ` · <b style="color:var(--warn)">+${fmt(x.pend)} RGU por instalar</b> que se sumarían` : ''} · ${esc(x.d)}</span></${filtrable ? 'button' : 'div'}>`).join('')}</div>
+      <span class="sub"><b style="color:var(--fg)">${fmt(x.ingresadas)} ingresada${x.ingresadas === 1 ? '' : 's'} este mes</b>${x.reing ? ` (${fmt(x.reing)} reingreso${x.reing === 1 ? '' : 's'}, no suma${x.reing === 1 ? '' : 'n'} al límite)` : ''}${x.sinMarca ? ` · <b style="color:var(--warn)">${fmt(x.ingresadas - x.sinMarca)} marcada${x.ingresadas - x.sinMarca === 1 ? '' : 's'} en la planilla y ${fmt(x.sinMarca)} de comunas del sur sin marcar</b>` : ''} · ${fmt(x.n)} instalada${x.n === 1 ? '' : 's'}${x.pend ? ` · <b style="color:var(--warn)">+${fmt(x.pend)} RGU por instalar</b> que se sumarían` : ''} · ${esc(x.d)}</span></${filtrable ? 'button' : 'div'}>`).join('')}</div>
     <p class="note" style="margin:10px 0 0">Cuenta los RGU de las ventas <b>instaladas</b> en el mes (también las de arrastre de meses anteriores que se instalaron este mes), sin remisiones. "Por instalar" son las ingresadas que todavía no se instalan. Cuestionario: dice "cuestionario" en comentarios. Fuera de zona: comuna desde Rancagua al sur (O'Higgins a Magallanes), o marcada "fuera de zona" en comentarios.</p></div>`;
 }
 const DASH = { vista: (() => { try { return localStorage.getItem('vp-dash-vista') || 'rgu'; } catch (e) { return 'rgu'; } })() };
@@ -2529,6 +2537,7 @@ function viewEmisiones(el) {
     <div><h2>Ingreso de ventas</h2><p>Registra cada venta emitida y su seguimiento. Reemplaza la planilla de emisiones${COB.db ? '; todo queda guardado para el equipo' : ''}.</p></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <select class="input" id="emiMes" aria-label="Mes" style="height:38px;width:auto">${meses.map(m => `<option value="${m}" ${m === EMI.mes ? 'selected' : ''}>${mesLabel(m)}</option>`).join('')}</select>
+      <a class="btn sm" href="#subir">${ic('upload')}Subir archivos</a>
       <label class="btn sm" style="cursor:pointer">${ic('upload')}Importar planilla<input type="file" id="emiImpFile" accept=".xlsx,.xls,.xlsm" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"></label>
       <button class="btn sm" id="emiExport">${ic('download')}Descargar Excel del mes</button>
     </div>
@@ -2887,7 +2896,7 @@ function renderEmiTable() {
       <td class="num">${fmtFecha(v.fecha).slice(0, 5)}<div class="sub" title="Ingresada por ${esc(ingresoDe(v))}">por ${esc(ingresoCorto(v))}</div>${v.estatus && v.estatus !== 'VENTA NUEVA' ? `<div class="sub" style="color:${tipoIng(v.estatus).t}">${esc(tipoIng(v.estatus).l)}</div>` : ''}</td>
       <td class="mono">${esc(v.rut) || '—'}${v.telefono ? `<div class="sub">${telLink(v.telefono) || esc(v.telefono)}</div>` : ''}${v.cuentaFact ? `<div class="sub">Cta. ${esc(v.cuentaFact)}</div>` : ''}</td>
       <td style="min-width:190px;white-space:normal">${mk(v.marca)}<div class="sub">${esc(v.producto) || '—'} · ${v.cantidad || 0} RGU</div></td>
-      <td>${esc(v.comuna) || '—'}<div class="sub">${esc(v.region)}</div>${esFdz(v) ? `<div class="sub" style="color:var(--warn)" title="${esc(fdzPor(v))}">Fuera de zona</div>` : ''}${esCuest(v) ? '<div class="sub" style="color:var(--info)">Cuestionario</div>' : ''}</td>
+      <td>${esc(v.comuna) || '—'}<div class="sub">${esc(v.region)}</div>${esFdz(v) ? `<div class="sub" style="color:var(--warn)" title="${esc(fdzPor(v))}">Fuera de zona${TXT_FDZ.test(textoVenta(v)) ? '' : ' · sin marcar en la planilla'}</div>` : ''}${esCuest(v) ? '<div class="sub" style="color:var(--info)">Cuestionario</div>' : ''}</td>
       <td>${sinDueno(v) ? `<span class="badge" style="--t:var(--violet)">Por asignar</span>${v.ejecutivo ? `<div class="sub">${esc(v.ejecutivo)}</div>` : ''}${v.supervisor ? `<div class="sub">${esc(v.supervisor)}</div>` : ''}` : `${esc(v.ejecutivo)}<div class="sub">${esc(v.supervisor)}</div>`}</td>
       <td class="num">${v.agenda?.fecha ? fmtFecha(v.agenda.fecha).slice(0, 5) : '—'}<div class="sub">${esc(v.agenda?.bloque || '')}</div></td>
       <td>${instCell(v)}</td>
@@ -4500,6 +4509,57 @@ async function supAskNotify() {
 }
 const hace = iso => { const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 1 ? 'recién' : m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
 
+/* ---------- SUBIR ARCHIVOS: un solo lugar para la planilla de ventas, el maestro y el reporte de calidad ---------- */
+const SUBIR = { msg: '', tipo: '', ocupado: false };
+function viewSubir(el) {
+  emiInit();
+  const ro = soloLectura(), A = maeActive(), C = CAL.periodos[CAL.periodos.length - 1];
+  const ult = (t, x) => `<div class="sub-last"><span>${t}</span><b>${x}</b></div>`;
+  el.innerHTML = `<div class="hello"><div><h2>Subir archivos</h2><p>Sube la planilla de ventas, el maestro VTR/Claro o el reporte de calidad. La app reconoce sola qué archivo es.</p></div></div>
+    ${ro ? `<div class="restricted">${ic('eye')}<span>Tu acceso es de solo lectura: no puedes subir archivos. Pide a un administrador que te dé acceso de backoffice.</span></div>` : `
+    <label class="drop" id="subDrop" tabindex="0">
+      <input type="file" id="subFile" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+      <span class="drop-ic">${ic('upload')}</span>
+      <b>${SUBIR.ocupado ? 'Leyendo el archivo…' : 'Toca aquí para elegir el archivo'}</b>
+      <span class="sub">o arrástralo a este recuadro · Excel (.xlsx, .xls) o .csv · también los que llegan por WhatsApp, correo o Drive</span>
+    </label>`}
+    <div id="subMsg">${SUBIR.msg}</div>
+    <div class="grid-3">
+      <div class="card"><h3 class="sub-h">${ic('sheet')}Planilla de ventas</h3><p class="note">La planilla de emisiones (hojas por mes). Agrega las ventas nuevas y actualiza las que cambiaron; antes de guardar te muestra el resumen.</p></div>
+      <div class="card"><h3 class="sub-h">${ic('file')}Maestro VTR/Claro</h3><p class="note">El reporte de pedidos de la compañía. Actualiza el Dashboard, Seguimiento y Ventas.</p>${A ? ult('Último cargado', `${esc(A.archivo || '')} · datos hasta el ${fmtFecha(A.hasta)}`) : ''}</div>
+      <div class="card"><h3 class="sub-h">${ic('shield')}Calidad de 1° boleta</h3><p class="note">El reporte de boletas del mes. Si es del mismo mes, reemplaza al anterior y actualiza los estados.</p>${C ? ult('Último cargado', `${esc(PERIODO_LABEL(C.id))}${C.subidoEn ? ' · el ' + fmtFecha(isoOf(new Date(C.subidoEn))) : ''}`) : ''}</div>
+    </div>`;
+  const inp = $('#subFile'), drop = $('#subDrop'); if (!inp) return;
+  inp.addEventListener('change', () => { const f = inp.files[0]; inp.value = ''; subirArchivo(f); });
+  drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inp.click(); } });
+  ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) subirArchivo(f); });
+}
+const subMsg = (t, tipo) => { SUBIR.msg = t ? `<div class="restricted" style="${tipo === 'ok' ? 'background:color-mix(in srgb,var(--good) 12%,transparent);border-color:color-mix(in srgb,var(--good) 40%,transparent);color:var(--fg)' : ''}">${ic(tipo === 'ok' ? 'checkc' : 'alertc')}<span>${t}</span></div>` : ''; const b = $('#subMsg'); if (b) b.innerHTML = SUBIR.msg; };
+async function subirArchivo(file) {
+  if (!file || SUBIR.ocupado) return;
+  if (soloLectura()) { subMsg('Tu acceso es de solo lectura: no puedes subir archivos.'); return; }
+  if (!/\.(xlsx|xlsm|xls|csv)$/i.test(file.name) && !/sheet|excel|csv/i.test(file.type || '')) { subMsg(`<b>${esc(file.name)}</b> no parece un Excel. Sube un archivo .xlsx, .xls o .csv.`); return; }
+  if (file.size > 40 * 1024 * 1024) { subMsg('El archivo pesa más de 40 MB. Guárdalo de nuevo en Excel sin imágenes e intenta otra vez.'); return; }
+  SUBIR.ocupado = true; subMsg(`Leyendo <b>${esc(file.name)}</b>…`, 'ok');
+  try {
+    if (!(await xlsxListo())) { subMsg('No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo.'); return; }
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', raw: /\.csv$/i.test(file.name), cellDates: false });
+    if (calFindSheet(wb)) { subMsg(`<b>${esc(file.name)}</b>: reporte de calidad de boletas. Guardándolo…`, 'ok'); await calImportWorkbook(wb, file.name); return; }
+    const sheets = emiSheets(wb);
+    if (sheets.length) {
+      EMI.imp = { wb, archivo: file.name, sheets, sheet: sheets.length > 1 ? TODAS_HOJAS : sheets[0], progreso: null };
+      emiPrepImport();
+      subMsg(`<b>${esc(file.name)}</b>: planilla de ventas (${sheets.length} hoja${sheets.length === 1 ? '' : 's'}). Revisa el resumen y confirma en Ingreso de ventas.`, 'ok');
+      location.hash = 'ingreso'; setTimeout(() => $('#emiImport')?.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' }), 400);
+      return;
+    }
+    if (maeFindSheet(wb)) { subMsg(`<b>${esc(file.name)}</b>: maestro VTR/Claro. Guardándolo…`, 'ok'); await maeImportWorkbook(wb, file.name); return; }
+    subMsg(`No reconocí <b>${esc(file.name)}</b>. La planilla de ventas necesita las columnas FECHA EMISION y RUT CLIENTE; el maestro, NUM_PEDIDO y estado_pedido; y la calidad, la hoja de 1° boleta.`);
+  } catch (e) { subMsg(`No se pudo leer <b>${esc(file.name)}</b>. Si viene de WhatsApp o Drive, descárgalo al teléfono primero y vuelve a intentarlo.`); }
+  finally { SUBIR.ocupado = false; }
+}
 const SPV = { sup: '', vf: 'todas', q: '', ej: '', page: 1 };
 const rguV = v => Number(v.cantidad) || 0;
 // arr = ventas del mes (vendidas); inst = ventas instaladas en el mes (base de los límites 5% y 3%).
@@ -4874,6 +4934,7 @@ function aplicarSoloLectura(root = document) {
   const v = $('#view');
   if (v && v.firstElementChild && !$('.ro-banner', v)) v.insertAdjacentHTML('afterbegin', `<div class="ro-banner">${ic('eye')}<span><b>Acceso de solo lectura.</b> Puedes ver y descargar todo, pero no cambiar ventas ni subir archivos.</span></div>`);
 }
+if (window.Capacitor) { const sinFiltro = () => $$('input[type="file"][accept]').forEach(i => i.removeAttribute('accept')); new MutationObserver(sinFiltro).observe(document.body, { childList: true, subtree: true }); sinFiltro(); }
 let roPend = false;
 new MutationObserver(() => { if (!roPend && soloLectura()) { roPend = true; requestAnimationFrame(() => { roPend = false; aplicarSoloLectura(); }); } }).observe(document.body, { childList: true, subtree: true });
 function applyRole(perf) {
