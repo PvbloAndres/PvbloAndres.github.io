@@ -1948,12 +1948,17 @@ const COMUNAS_SUR = new Set([
   // XII Magallanes
   'Punta Arenas', 'Laguna Blanca', 'Río Verde', 'San Gregorio', 'Cabo de Hornos', 'Puerto Williams', 'Antártica', 'Porvenir', 'Primavera', 'Timaukel', 'Natales', 'Puerto Natales', 'Torres del Paine',
 ].map(norm));
+['Coihaique', 'Pto Montt', 'Puerto Mont', 'Pto Varas', 'Pto Natales', 'Pto Aysén', 'Puerto Aisén', 'Pto Octay', 'Chillan Viejo', 'San Pedro de La Paz', 'Hualpen'].forEach(c => COMUNAS_SUR.add(norm(c)));
 const REG_SUR = /ohiggins|maule|nuble|biobio|araucania|losrios|loslagos|aysen|magallanes/;
+// Región de la planilla escrita como región del sur (ej. "VIII REGION", "SUR")
+const REGION_SUR = /^(vi|vii|viii|ix|x|xi|xii|xiv|xvi)(region|reg)?$|^(region)?(vi|vii|viii|ix|x|xi|xii|xiv|xvi)$|^sur$/;
+const TXT_FDZ = /fuera\s*(de\s*)?(la\s*)?zona|\bf\.?\s*d\.?\s*z\b|\bfdz\b/i;
 const textoVenta = v => [v.comentarios, v.motivo, v.estado, v.oferta].join(' ');
 const esCuest = v => /cuestionario/i.test(textoVenta(v)) || !!v.cuestionario;
 function fdzPor(v) {
   if (COMUNAS_SUR.has(norm(v.comuna))) return 'comuna del sur';
-  if (/fuera\s*de\s*zona/i.test(textoVenta(v))) return 'marcada en comentarios';
+  if (REGION_SUR.test(norm(v.region))) return 'región del sur';
+  if (TXT_FDZ.test(textoVenta(v))) return 'marcada en comentarios';
   return '';
 }
 const esFdz = v => !!fdzPor(v);
@@ -1978,7 +1983,8 @@ function limitesDe(inst, emit = []) {
   const meta = metaMensual(), rg = a => a.reduce((t, v) => t + (Number(v.cantidad) || 0), 0), totInst = rg(inst);
   return Object.fromEntries(Object.entries(LIMITES).map(([k, L]) => { const f = k === 'cuest' ? esCuest : esFdz, arr = inst.filter(f), r = rg(arr), tope = Math.floor(meta * L.pct);
     const pend = rg(emit.filter(v => !esRemision(v) && f(v) && ['', 'REAGENDADO', 'EN EJECUCION', 'SIN AGENDA'].includes(v.inst || '')));
-    return [k, { ...L, arr, rgu: r, n: arr.length, meta, tope, totInst, pend, pctMeta: meta ? r / meta : 0, uso: tope ? r / tope : 0 }]; }));
+    const ingresadas = emit.filter(f).length, reing = emit.filter(v => f(v) && esRemision(v)).length;
+    return [k, { ...L, arr, rgu: r, n: arr.length, ingresadas, reing, meta, tope, totInst, pend, pctMeta: meta ? r / meta : 0, uso: tope ? r / tope : 0 }]; }));
 }
 function limitesCard(list, filtrable) {
   const inst = instaladasMes().filter(v => state.brand === 'todas' || v.marca === state.brand), X = limitesDe(inst, list), tone = u => u >= 1 ? 'var(--crit)' : u >= .8 ? 'var(--warn)' : 'var(--good)';
@@ -1987,7 +1993,7 @@ function limitesCard(list, filtrable) {
       <span class="lim-h"><b>${x.l}</b><span class="lim-pct">${(x.pctMeta * 100).toLocaleString('es-CL', { maximumFractionDigits: 1 })}%<small> de ${fmt(x.meta)}</small></span></span>
       <span class="lim-bar" aria-hidden="true"><i style="width:${Math.min(100, x.uso * 100)}%"></i></span>
       <span class="lim-s"><span><b>${fmt(x.rgu)} de ${fmt(x.tope)} RGU instalados</b> permitidos (${Math.round(x.pct * 100)}% de ${fmt(x.meta)})</span><span>${x.uso >= 1 ? `<b style="color:var(--crit)">Pasado por ${fmt(x.rgu - x.tope)} RGU</b>` : `Quedan <b>${fmt(x.tope - x.rgu)} RGU</b>`}</span></span>
-      <span class="sub">${fmt(x.n)} venta${x.n === 1 ? '' : 's'} instalada${x.n === 1 ? '' : 's'}${x.pend ? ` · <b style="color:var(--warn)">+${fmt(x.pend)} RGU por instalar</b> que se sumarían` : ''} · ${esc(x.d)}</span></${filtrable ? 'button' : 'div'}>`).join('')}</div>
+      <span class="sub"><b style="color:var(--fg)">${fmt(x.ingresadas)} ingresada${x.ingresadas === 1 ? '' : 's'} este mes</b>${x.reing ? ` (${fmt(x.reing)} reingreso${x.reing === 1 ? '' : 's'}, no suma${x.reing === 1 ? '' : 'n'} al límite)` : ''} · ${fmt(x.n)} instalada${x.n === 1 ? '' : 's'}${x.pend ? ` · <b style="color:var(--warn)">+${fmt(x.pend)} RGU por instalar</b> que se sumarían` : ''} · ${esc(x.d)}</span></${filtrable ? 'button' : 'div'}>`).join('')}</div>
     <p class="note" style="margin:10px 0 0">Cuenta los RGU de las ventas <b>instaladas</b> en el mes (también las de arrastre de meses anteriores que se instalaron este mes), sin remisiones. "Por instalar" son las ingresadas que todavía no se instalan. Cuestionario: dice "cuestionario" en comentarios. Fuera de zona: comuna desde Rancagua al sur (O'Higgins a Magallanes), o marcada "fuera de zona" en comentarios.</p></div>`;
 }
 const DASH = { vista: (() => { try { return localStorage.getItem('vp-dash-vista') || 'rgu'; } catch (e) { return 'rgu'; } })() };
@@ -2870,7 +2876,7 @@ function renderEmiTable() {
   const box = $('#emiTable'); if (!box) return;
   const q = norm(EMI.q);
   const list = emiMes().filter(v => (state.brand === 'todas' || v.marca === state.brand) && (EMI.filt == null || (v.inst || '') === EMI.filt) && (!EMI.ej || v.ejecutivo === EMI.ej) && (!EMI.sup || nameKey(v.supervisor) === nameKey(EMI.sup))
-    && (!EMI.rev || emiIssues(v).includes(EMI.rev)) && (!EMI.lim || (!esRemision(v) && (EMI.lim === 'cuest' ? esCuest(v) : esFdz(v)))) && (!EMI.por || ingresoDe(v) === EMI.por) && (EMI.tipo == null || EMI.tipo === '' || (v.estatus || '') === EMI.tipo) && (!q || norm(v.pedido + v.rut + v.producto + v.comuna + v.ejecutivo + (v.telefono || '') + (v.cuentaFact || '')).includes(q)))
+    && (!EMI.rev || emiIssues(v).includes(EMI.rev)) && (!EMI.lim || (EMI.lim === 'cuest' ? esCuest(v) : esFdz(v))) && (!EMI.por || ingresoDe(v) === EMI.por) && (EMI.tipo == null || EMI.tipo === '' || (v.estatus || '') === EMI.tipo) && (!q || norm(v.pedido + v.rut + v.producto + v.comuna + v.ejecutivo + (v.telefono || '') + (v.cuentaFact || '')).includes(q)))
     .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.creadoEn || '').localeCompare(a.creadoEn || '') || b.id.localeCompare(a.id));
   const shown = list.slice(0, EMI.page * 20);
   box.innerHTML = list.length ? `
