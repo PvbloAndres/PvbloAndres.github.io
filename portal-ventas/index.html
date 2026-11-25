@@ -238,6 +238,10 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 #logoutDlg.mfa-dlg { overflow-y: auto; align-items: start; padding-top: max(24px, env(safe-area-inset-top, 0px)); padding-bottom: 24px; }
 #logoutDlg.mfa-dlg .box { margin: auto; }
 .mfa-pasos { margin: 0; padding-left: 20px; display: grid; gap: 4px; color: var(--fg-2); font-size: 14px; }
+.mfa-clave { display: grid; gap: 8px; justify-items: center; padding: 12px; border: 1px dashed var(--line); border-radius: 12px; background: var(--panel-2); }
+.mfa-clave .mono { font-size: 15px; letter-spacing: 1px; text-align: center; word-break: break-all; user-select: all; color: var(--fg); }
+.mfa-otro summary { cursor: pointer; color: var(--muted); font-size: 13px; text-align: center; }
+.mfa-otro[open] { display: grid; gap: 10px; justify-items: center; }
 .mfa-qr { justify-self: center; background: #fff; padding: 10px; border-radius: 14px; width: 176px; height: 176px; }
 #logoutDlg p { margin: 0; color: var(--muted); font-size: 13.5px; }
 #logoutDlg .row { display: flex; gap: 10px; width: 100%; }
@@ -3874,11 +3878,92 @@ function calNavCount() {
 }
 function renderCurrentCal() { if (currentView() === 'calidad' && $('#calBody')) renderCalBody(); if ($('#cobDash')) renderCobDash(); }
 
+/* ---------- CALIDAD EN VIVO: con las instalaciones que el equipo actualiza, sin esperar el reporte de VTR ---------- */
+const CALV = { on: (() => { try { return localStorage.getItem('vp-cal-modo') !== 'reporte'; } catch (e) { return true; } })(), mes: '', f: '', q: '', sup: '', ver: 60 };
+const CALV_K = {
+  cobrar: { l: 'Cobrar ahora', t: 'var(--serious)', d: 'Vencida, todavía dentro del día 8' },
+  pendiente: { l: 'Por vencer', t: 'var(--info)', d: 'Aún no vence' },
+  sin_venc: { l: 'Sin vencimiento', t: 'var(--warn)', d: 'Falta anotar la fecha de vencimiento' },
+  no_pagado: { l: 'No pagadas', t: 'var(--crit)', d: 'Pasó el día 8 sin pago' },
+  en_plazo: { l: 'Pagadas en plazo', t: 'var(--good)', d: 'Pagaron hasta el día 8' },
+  fuera: { l: 'Pagadas fuera de plazo', t: 'var(--warn)', d: 'Pagaron después del día 8' },
+};
+const calvK = v => { const k = boletaEstado(v.boleta); return !k ? 'sin_venc' : k === 'pend_venc' ? 'cobrar' : k === 'fuera_nc' ? 'fuera' : k; };
+function calvResumen(list) {
+  const rg = a => a.reduce((t, v) => t + (v.cantidad || 1), 0), por = {};
+  Object.keys(CALV_K).forEach(k => { por[k] = list.filter(v => calvK(v) === k); });
+  const tot = rg(list), ok = rg(por.en_plazo), base = tot - rg(por.fuera);
+  const posible = rg([...por.en_plazo, ...por.cobrar, ...por.pendiente, ...por.sin_venc]);
+  const conDatos = list.length - por.sin_venc.length; // sin ninguna boleta con vencimiento o pago anotado no hay % que mostrar
+  return { tot, ok, base, pct: base && conDatos ? ok / base : null, max: base && conDatos ? posible / base : null, por, rg, conDatos };
+}
+function calVivoRender(box) {
+  if (COB.db && !BOL.data) { box.innerHTML = `<div class="card"><div class="factib"><span class="spin"></span><span>Buscando las ventas instaladas…</span></div></div>`; bolCargar().then(() => { if (currentView() === 'calidad' && CALV.on) renderCalBody(); }); return; }
+  if (Date.now() - BOL.en > 5 * 60000 && !BOL.prom) bolCargar().then(() => { if (currentView() === 'calidad' && CALV.on) renderCalBody(); });
+  const meses = [0, 1, 2, 3].map(k => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - k); return isoOf(d).slice(0, 7); });
+  if (!meses.includes(CALV.mes)) CALV.mes = meses[0];
+  const todas = instaladasMes(CALV.mes).filter(v => state.brand === 'todas' || v.marca === state.brand);
+  const R = calvResumen(todas), editar = !soloLectura();
+  const sups = [...new Map(todas.map(v => [nameKey(v.supervisor) || '—', v.supervisor || 'Sin supervisor'])).entries()].sort((a, b) => a[1].localeCompare(b[1], 'es'));
+  const filaRes = (nombre, arr, attr) => { const x = calvResumen(arr); return `<tr ${attr}><td>${esc(nombre)}</td><td class="num">${fmt(x.tot)}</td><td class="num"><b style="color:${toneBol(x.pct)}">${x.pct == null ? '—' : Math.round(x.pct * 100) + '%'}</b></td><td class="num">${fmt(x.por.cobrar.length)}</td><td class="num">${fmt(x.por.no_pagado.length)}</td><td class="num">${fmt(x.por.sin_venc.length)}</td></tr>`; };
+  const q = norm(CALV.q);
+  const lista = todas.filter(v => (!CALV.f || calvK(v) === CALV.f) && (!CALV.sup || (nameKey(v.supervisor) || '—') === CALV.sup) && (!q || norm([v.pedido, v.rut, v.telefono, v.ejecutivo, v.supervisor, v.comuna].join(' ')).includes(q)))
+    .sort((a, b) => { const o = ['cobrar', 'sin_venc', 'pendiente', 'no_pagado', 'fuera', 'en_plazo']; return o.indexOf(calvK(a)) - o.indexOf(calvK(b)) || String((a.boleta && (a.boleta.plazo || a.boleta.venc)) || '9').localeCompare(String((b.boleta && (b.boleta.plazo || b.boleta.venc)) || '9')); });
+  const tabla = (tit, filas) => `<div class="table-wrap"><table><thead><tr><th>${tit}</th><th>RGU instalados</th><th>% en plazo</th><th>Cobrar ahora</th><th>No pagadas</th><th>Sin vencimiento</th></tr></thead><tbody>${filas}</tbody></table></div>`;
+  const ejs = [...new Map(todas.map(v => [v.ejecutivo || '—', v.ejecutivo || 'Sin ejecutivo'])).entries()].sort((a, b) => a[1].localeCompare(b[1], 'es'));
+  box.innerHTML = `
+  <div class="card">
+    <div class="card-h"><div><h3>Calidad en vivo · instaladas en ${mesLabel(CALV.mes).toLowerCase()}</h3><p>Con las ventas que ustedes marcan como <b>instaladas</b> en el portal, sin esperar el reporte de VTR. Anoten en cada venta el vencimiento y, cuando paguen, la fecha de pago. Cuando llegue el reporte de VTR, sus estados pasan solos a cada venta.</p></div>
+      <select class="input" id="cvMes" aria-label="Mes de instalación" style="height:38px;width:auto">${meses.map(m => `<option value="${m}" ${m === CALV.mes ? 'selected' : ''}>Instaladas en ${mesLabel(m).toLowerCase()}</option>`).join('')}</select></div>
+    <div class="kpis">
+      <div class="kpi"><div class="eyebrow">Pagadas en plazo (RGU)</div><div class="big" style="color:${toneBol(R.pct)}">${R.pct == null ? '—' : Math.round(R.pct * 100) + '%'}</div><div class="delta" style="color:var(--muted)">${R.pct == null ? 'Anota el vencimiento de las boletas para calcularlo' : `${fmt(R.ok)} de ${fmt(R.base)} RGU · meta 100% · VTR exige 90%`}</div></div>
+      <div class="kpi"><div class="eyebrow">Máximo posible</div><div class="big" style="color:${toneBol(R.max)}">${R.max == null ? '—' : Math.round(R.max * 100) + '%'}</div><div class="delta" style="color:var(--muted)">si pagan a tiempo todas las que aún pueden</div></div>
+      <button type="button" class="kpi" data-cvf="cobrar" style="text-align:left;cursor:pointer"><div class="eyebrow">Cobrar ahora</div><div class="big" style="color:var(--serious)">${fmt(R.por.cobrar.length)}</div><div class="delta" style="color:var(--muted)">${fmt(R.rg(R.por.cobrar))} RGU · vencidas, aún en plazo: llámalos</div></button>
+      <button type="button" class="kpi" data-cvf="sin_venc" style="text-align:left;cursor:pointer"><div class="eyebrow">Sin vencimiento</div><div class="big" style="color:var(--warn)">${fmt(R.por.sin_venc.length)}</div><div class="delta" style="color:var(--muted)">instaladas sin fecha de vencimiento anotada</div></button>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-h"><div><h3>Por supervisor</h3><p>Toca uno para ver sus boletas</p></div></div>${tabla('Supervisor', sups.map(([k, n]) => filaRes(n, todas.filter(v => (nameKey(v.supervisor) || '—') === k), `data-cvsup="${esc(k)}" style="cursor:pointer"`)).join('') + filaRes('Total', todas, 'style="font-weight:700"'))}</div>
+    <div class="card"><div class="card-h"><div><h3>Por ejecutivo</h3><p>${fmt(ejs.length)} ejecutivos con ventas instaladas</p></div></div>${tabla('Ejecutivo', ejs.map(([k, n]) => filaRes(n, todas.filter(v => (v.ejecutivo || '—') === k), '')).join(''))}</div>
+  </div>
+  <div class="card stack" id="cvLista">
+    <div class="card-h" style="margin:0"><div><h3>Boletas de las instaladas · ${fmt(lista.length)}${CALV.sup ? ` · ${esc((sups.find(x => x[0] === CALV.sup) || [, ''])[1])} <button type="button" class="btn ghost sm" id="cvSupX">Quitar filtro</button>` : ''}</h3><p>Las que hay que cobrar primero van arriba${editar ? ' · anota el vencimiento y la fecha de pago aquí mismo' : ''}</p></div></div>
+    <input class="input" id="cvQ" placeholder="Buscar por pedido, RUT, teléfono, ejecutivo o comuna" value="${esc(CALV.q)}" aria-label="Buscar">
+    <div class="fchips">${['', ...Object.keys(CALV_K)].map(k => `<button type="button" class="fchip" data-cvf="${k}" style="--t:${k ? CALV_K[k].t : 'var(--cyan)'}" aria-pressed="${CALV.f === k}"><i></i>${k ? CALV_K[k].l : 'Todas'} · ${fmt(k ? R.por[k].length : todas.length)}</button>`).join('')}</div>
+    ${lista.length ? `<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Supervisor · ejecutivo</th><th>Instalada</th><th>Vencimiento</th><th>Pagó el</th><th>Estado</th></tr></thead><tbody>${lista.slice(0, CALV.ver).map(v => { const b = v.boleta || {}, k = calvK(v); return `<tr data-cvv="${esc(v.id)}">
+      <td><span class="mono">${esc(v.rut || '')}</span>${v.telefono ? `<div>${telLink(v.telefono)}</div>` : ''}<div class="sub mono">${esc(v.pedido || 'Sin pedido')} · ${fmt(v.cantidad || 1)} RGU</div></td>
+      <td>${esc(v.supervisor || 'Sin supervisor')}<div class="sub">${esc(v.ejecutivo || '')}</div></td>
+      <td class="num">${v.instalado ? fmtFecha(v.instalado) : '—'}</td>
+      <td>${editar ? `<input class="input mini" type="date" data-cvven="${esc(v.id)}" value="${esc(b.venc || '')}" aria-label="Vencimiento">` : (b.venc ? fmtFecha(b.venc) : '—')}${b.venc ? `<div class="sub">Día 8: ${fmtFecha(b.plazo || addDays(b.venc, 8))}</div>` : ''}</td>
+      <td>${editar ? `<input class="input mini" type="date" data-cvpag="${esc(v.id)}" value="${esc(b.pagada || '')}" aria-label="Fecha de pago">` : (b.pagada ? fmtFecha(b.pagada) : '—')}</td>
+      <td><span class="badge" style="--t:${CALV_K[k].t}">${CALV_K[k].l}</span>${b.monto ? `<div class="sub">${clp(b.monto)}</div>` : ''}</td></tr>`; }).join('')}</tbody></table></div>
+      ${lista.length > CALV.ver ? `<button type="button" class="btn sm" id="cvMas" style="justify-self:center">Ver ${fmt(Math.min(60, lista.length - CALV.ver))} más (de ${fmt(lista.length)})</button>` : ''}`
+      : `<p class="note" style="margin:0">${todas.length ? 'No hay boletas con este filtro.' : 'Todavía no hay ventas marcadas como instaladas este mes. Cuando el equipo marque una venta como COMPLETADO, aparece aquí.'}</p>`}
+  </div>`;
+  $('#cvMes').addEventListener('change', e => { CALV.mes = e.target.value; CALV.ver = 60; renderCalBody(); });
+  $$('[data-cvf]', box).forEach(b => b.addEventListener('click', () => { CALV.f = CALV.f === b.dataset.cvf && b.dataset.cvf ? '' : b.dataset.cvf; CALV.ver = 60; renderCalBody(); $('#cvLista')?.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' }); }));
+  $$('tr[data-cvsup]', box).forEach(tr => tr.addEventListener('click', () => { CALV.sup = tr.dataset.cvsup; CALV.ver = 60; renderCalBody(); $('#cvLista')?.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' }); }));
+  $('#cvSupX')?.addEventListener('click', () => { CALV.sup = ''; renderCalBody(); });
+  $('#cvMas')?.addEventListener('click', () => { CALV.ver += 60; renderCalBody(); });
+  let tq; $('#cvQ').addEventListener('input', e => { clearTimeout(tq); tq = setTimeout(() => { CALV.q = e.target.value; const pos = e.target.selectionStart; renderCalBody(); const n = $('#cvQ'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }, 300); });
+  const guardar = async (id, campo, valor) => {
+    const v0 = todas.find(x => x.id === id); if (!v0) return;
+    const v = JSON.parse(JSON.stringify(v0)); v.boleta = { venc: '', plazo: '', monto: 0, estado: '', pagada: '', nota: '', ...(v.boleta || {}) };
+    if (campo === 'venc') { v.boleta.venc = valor; v.boleta.plazo = valor ? addDays(valor, 8) : ''; }
+    else v.boleta.pagada = valor;
+    v.editadoEn = new Date().toISOString();
+    try { const g = await emiWrite(v, { prev: v0 }); if (BOL.data) { const i = BOL.data.findIndex(x => x.id === id); if (i >= 0) BOL.data[i] = g || v; } toast(campo === 'venc' ? 'Vencimiento guardado' : valor ? 'Pago anotado' : 'Pago quitado', 'checkc'); renderCalBody(); }
+    catch (e) { toast('No se pudo guardar: ' + (e.message || e), 'alertc'); }
+  };
+  $$('[data-cvven]', box).forEach(i => i.addEventListener('change', () => guardar(i.dataset.cvven, 'venc', i.value)));
+  $$('[data-cvpag]', box).forEach(i => i.addEventListener('change', () => guardar(i.dataset.cvpag, 'pagada', i.value)));
+  countUp(box);
+}
 function viewCalidadReal(el) {
   calInit();
   el.innerHTML = `
   <div class="hello">
-    <div><h2>Calidad de boletas</h2><p>Reporte de 1° boleta de VTR/Claro: quién pagó en plazo, qué boletas hay que cobrar hoy y qué estados hay que reclamar o corregir.</p></div>
+    <div><h2>Calidad de boletas</h2><p>En vivo con las ventas que ustedes marcan como instaladas, o con el reporte de 1° boleta de VTR/Claro: quién pagó en plazo, a quién cobrar hoy y qué reclamar.</p></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center" id="calHead"></div>
   </div>
   <div id="calBody" style="display:grid;gap:22px;grid-template-columns:minmax(0,1fr)"></div>`;
@@ -3887,12 +3972,16 @@ function viewCalidadReal(el) {
 function renderCalBody() {
   calPublicarPendientes();
   const box = $('#calBody'), head = $('#calHead'); if (!box) return;
+  const modo = `<div class="seg" role="group" aria-label="Fuente de la calidad" style="flex-basis:100%;justify-content:flex-end"><button type="button" data-calmodo="vivo" aria-pressed="${CALV.on}">En vivo (instalaciones)</button><button type="button" data-calmodo="reporte" aria-pressed="${!CALV.on}">Reporte VTR</button></div>`;
+  const bindModo = () => $$('[data-calmodo]', head).forEach(b => b.addEventListener('click', () => { CALV.on = b.dataset.calmodo === 'vivo'; try { localStorage.setItem('vp-cal-modo', CALV.on ? 'vivo' : 'reporte'); } catch (e) { /* sin almacenamiento */ } renderCalBody(); }));
+  if (CALV.on) { head.innerHTML = modo; bindModo(); calVivoRender(box); return; }
   const per = [...new Set([...CAL.periodos.map(p => p.id), ...(CAL.local ? [CAL.local.id] : [])])].sort().reverse();
   head.innerHTML = `${per.length ? `<select class="input" id="calPer" aria-label="Período" style="height:38px;width:auto">${per.map(p => `<option value="${p}" ${p === CAL.sel ? 'selected' : ''}>${PERIODO_LABEL(p)}</option>`).join('')}</select>` : ''}
     <label class="btn sm primary" style="cursor:pointer" title="Si es del mismo mes, reemplaza al anterior y actualiza los estados">${ic('upload')}${per.length ? 'Subir reporte nuevo o actualizado' : 'Subir reporte de 1° boleta'}<input type="file" id="calFile" accept=".xlsx,.xls,.xlsm" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"></label>
     ${CAL.recLoaded && Object.keys(CAL.rec).length ? `<button class="btn sm" id="calRecExp">${ic('download')}Reclamos (${Object.values(CAL.rec).filter(x => x.estado !== 'Aceptado' && x.estado !== 'Rechazado').length})</button>` : ''}`;
   const actual = CAL.periodos.find(x => x.id === CAL.sel);
   if (actual) head.insertAdjacentHTML('beforeend', `<span class="note" style="flex-basis:100%;text-align:right">Reporte de ${PERIODO_LABEL(actual.id).toLowerCase()}: ${fmt(actual.filas || 0)} boletas · cargado el ${actual.subidoEn ? fmtFecha(isoOf(new Date(actual.subidoEn))) + ' ' + new Date(actual.subidoEn).toTimeString().slice(0, 5) : '—'}${actual.archivo ? ' · ' + esc(actual.archivo) : ''}</span>`);
+  head.insertAdjacentHTML('afterbegin', modo); bindModo();
   $('#calPer')?.addEventListener('change', e => { CAL.sel = e.target.value; CAL.page = 1; renderCalBody(); });
   $('#calFile').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; if (!(await xlsxListo())) { toast('No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo.', 'alertc'); return; } try { const wb = XLSX.read(await f.arrayBuffer(), { type: 'array', cellDates: false }); if (!(await calImportWorkbook(wb, f.name))) toast('No encontré las columnas NUM_PEDIDO, FECHA_VENCIMIENTO y MONTO_BOLETA en este archivo.', 'alertc'); } catch (err) { toast('No se pudo leer el archivo.', 'alertc'); } });
   $('#calRecExp')?.addEventListener('click', calExportReclamos);
@@ -5174,16 +5263,38 @@ function mfaDialog(factor, listo) {
       <span class="ico" style="justify-self:center;color:var(--cyan);background:color-mix(in srgb,var(--cyan) 16%,transparent)">${ic('shield')}</span>
       <h3 id="mfaTit" style="text-align:center">${factor ? 'Verificación en dos pasos' : 'Activa la verificación en dos pasos'}</h3>
       ${factor ? '<p style="margin:0">Abre tu app de autenticación y escribe el código de 6 dígitos del portal.</p>'
-        : ins ? `<ol class="mfa-pasos"><li>Instala <b>Google Authenticator</b> o <b>Microsoft Authenticator</b> en tu teléfono.</li><li>${telefono ? 'Toca <b>Agregar en este teléfono</b>, o escanea el código desde otro equipo.' : 'En la app toca <b>+</b> y escanea este código.'}</li><li>Escribe el código de 6 dígitos que aparece.</li></ol>
-          <img class="mfa-qr" src="${esc(ins.qr)}" alt="Código QR para agregar el portal a la app de autenticación" width="176" height="176">
-          ${telefono ? `<a class="btn sm" href="${esc(ins.uri)}" style="justify-self:center">Agregar en este teléfono</a>` : ''}
-          <p class="note" style="margin:0">¿No puedes escanear? Escribe esta clave en la app: <b class="mono" style="user-select:all;word-break:break-all">${esc(ins.secreto)}</b></p>`
+        : ins ? (() => {
+          const clave = esc(String(ins.secreto).replace(/(.{4})(?=.)/g, '$1 '));
+          const claveBox = `<div class="mfa-clave"><span class="mono" id="mfaSecreto">${clave}</span><button type="button" class="btn sm primary" id="mfaCopiar">Copiar clave</button></div>`;
+          const qr = `<img class="mfa-qr" src="${esc(ins.qr)}" alt="Código QR para agregar el portal a la app de autenticación" width="176" height="176">`;
+          return telefono
+            ? `<p style="margin:0">Se hace <b>una sola vez</b>, en este mismo teléfono:</p>
+              <ol class="mfa-pasos"><li>Instala <b>Google Authenticator</b> (o Microsoft Authenticator) desde Play Store o App Store.</li>
+                <li>Toca <b>Copiar clave</b>:</li></ol>
+              ${claveBox}
+              <ol class="mfa-pasos" start="3"><li>Abre Google Authenticator, toca <b>+</b> y elige <b>Ingresar una clave de configuración</b>.</li>
+                <li>En <b>Cuenta</b> escribe <b>NovaVentas</b>, en <b>Clave</b> pega lo copiado (mantén presionado → Pegar) y toca <b>Agregar</b>.</li>
+                <li>Aparece un código de 6 dígitos: mantenlo presionado para copiarlo, vuelve aquí y pégalo abajo.</li></ol>
+              <a class="btn sm ghost" href="${esc(ins.uri)}" style="justify-self:center">O ábrelo directo en la app de autenticación</a>
+              <details class="mfa-otro"><summary>¿Tienes otro equipo? Escanea el código QR</summary>${qr}</details>`
+            : `<ol class="mfa-pasos"><li>Instala <b>Google Authenticator</b> o <b>Microsoft Authenticator</b> en tu teléfono.</li><li>En la app toca <b>+</b> → <b>Escanear código QR</b> y apunta a este código.</li><li>Escribe el código de 6 dígitos que aparece.</li></ol>
+              ${qr}
+              <p class="note" style="margin:0">¿No puedes escanear? En la app elige <b>Ingresar una clave de configuración</b> y usa esta clave:</p>${claveBox}`;
+        })()
         : '<p style="margin:0">Por seguridad, tu cuenta entra con tu contraseña y un código que cambia cada 30 segundos en tu teléfono. Se activa una sola vez.</p><p class="note" style="margin:0">Preparando…</p>'}
-      ${listoCodigo ? '<div class="field"><label for="mfaCode">Código de 6 dígitos</label><input class="input mono" id="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="font-size:20px;letter-spacing:6px;text-align:center"></div>' : ''}
+      ${listoCodigo ? '<div class="field"><label for="mfaCode">Código de 6 dígitos</label><input class="input mono" id="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" style="font-size:20px;letter-spacing:6px;text-align:center"></div>' : ''}
       <div id="mfaErr">${err ? `<div class="restricted">${ic('alertc')}<span>${esc(err)}</span></div>` : ''}</div>
       <div class="row"><button type="button" class="btn ghost" id="mfaNo">Cerrar sesión</button>${listoCodigo ? '<button class="btn primary" type="submit" id="mfaSi">Verificar</button>' : ''}</div>
       ${factor ? '<p class="note" style="margin:0">¿Perdiste o cambiaste el teléfono? Pide a un administrador que te quite la verificación (Ayuda → Usuarios) para activarla de nuevo.</p>' : ''}
     </form>`;
+    $('#mfaCopiar')?.addEventListener('click', async () => {
+      const t = String(ins.secreto), b = $('#mfaCopiar');
+      let ok = false;
+      try { await navigator.clipboard.writeText(t); ok = true; } catch (e) { /* sin permiso de portapapeles */ }
+      if (!ok) { try { const ta = document.createElement('textarea'); ta.value = t; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (e) { ok = false; } }
+      if (ok) { b.textContent = 'Clave copiada ✓'; setTimeout(() => { if (b.isConnected) b.textContent = 'Copiar clave'; }, 4000); }
+      else { const r = document.createRange(); r.selectNodeContents($('#mfaSecreto')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = 'Mantén presionada la clave y copia'; }
+    });
     $('#mfaNo').addEventListener('click', async () => { try { await VP_STANDALONE.signOut(); } catch (e) { /* sin conexión */ } d.remove(); listo(false); location.replace(location.pathname + location.search); });
     const code = $('#mfaCode');
     if (code) { setTimeout(() => code.focus(), 50); code.addEventListener('input', () => { code.value = code.value.replace(/\D/g, '').slice(0, 6); if (code.value.length === 6) $('#mfaForm').requestSubmit(); }); }
