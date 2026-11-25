@@ -1497,6 +1497,7 @@ function alertas() {
     if (d == null || d >= 7) out.push({ sev: 'warn', n: 1, titulo: d == null ? 'Todavía no se descarga ningún respaldo' : `Hace ${d} días que no se descarga un respaldo`, detalle: 'Descarga el respaldo en Excel y JSON y guárdalo en el Drive de la empresa. Se recomienda una vez por semana.', href: '#ayuda', accion: 'Descargar respaldo' });
   }
   // Ventas sin dueño
+  if (EMI.loaded && !soloLectura()) add('warn', emiMes().filter(v => fdzLugar(v) && !v.fdz).length, 'Ventas del sur sin la marca fuera de zona', 'Toda venta de una comuna desde Rancagua a Punta Arenas debe quedar marcada fuera de zona. Las ventas nuevas se marcan solas; estas son anteriores. Al tocar el botón se marcan todas.', '#ingreso', 'Marcar todas', () => { EMI.lim = 'fdz'; EMI.page = 1; fdzMarcarTodas(); });
   if (EMI.loaded) add('warn', emiMes().filter(sinDueno).length, 'Ventas por asignar (sin ejecutivo o supervisor)', 'No aparecen en ningún portal de supervisor hasta asignarlas. Asígnalas en Ingreso de ventas → Ventas por asignar.', '#ingreso', 'Asignar', () => { EMI.sup = ''; EMI.rev = ''; });
   // Límites del mes: cuestionarios y fuera de zona
   if (EMI.loaded && EMI.mes === isoOf(new Date()).slice(0, 7)) {
@@ -1697,7 +1698,7 @@ async function respaldoLeer(msg) {
 const unchunk = (parts, n) => parts.filter(x => n == null || x.i < n).sort((a, b) => a.i - b.i).flatMap(x => x.rows || []);
 function respaldoLibro(B) {
   const wb = XLSX.utils.book_new(), C = B.colecciones;
-  const flat = v => ({ pedido: v.pedido, fecha: v.fecha, mes: v.mes, rut: v.rut, telefono: v.telefono ? fonoTxt(v.telefono) : '', cuenta_facturacion: v.cuentaFact || '', marca: v.marca, producto: v.producto, rgu: v.cantidad, comuna: v.comuna, region: v.region,
+  const flat = v => ({ pedido: v.pedido, fecha: v.fecha, mes: v.mes, rut: v.rut, telefono: v.telefono ? fonoTxt(v.telefono) : '', cuenta_facturacion: v.cuentaFact || '', marca: v.marca, producto: v.producto, rgu: v.cantidad, comuna: v.comuna, region: v.region, fuera_de_zona: esFdz(v) ? 'SI' : '',
     ejecutivo: v.ejecutivo, supervisor: v.supervisor, estatus: v.estatus, ticket: v.ticket, estado: v.estado, oferta: v.oferta,
     agenda: v.agenda ? [v.agenda.fecha, v.agenda.bloque].filter(Boolean).join(' ') : '', instalacion: v.inst, motivo: v.motivoCat, detalle_motivo: v.motivo,
     reagenda: v.reagenda ? [v.reagenda.fecha, v.reagenda.bloque].filter(Boolean).join(' ') : '', instalado: v.instalado, comentarios: v.comentarios,
@@ -1963,10 +1964,14 @@ const REGION_SUR = /^(vi|vii|viii|ix|x|xi|xii|xiv|xvi)(region|reg)?$|^(region)?(
 const TXT_FDZ = /fuera\s*(de\s*)?(la\s*)?zona|\bf\.?\s*d\.?\s*z\b|\bfdz\b/i;
 const textoVenta = v => [v.comentarios, v.motivo, v.estado, v.oferta].join(' ');
 const esCuest = v => /cuestionario/i.test(textoVenta(v)) || !!v.cuestionario;
+// Toda venta de una comuna del sur va marcada como fuera de zona (no se puede vender ahí): la marca se pone sola al guardar.
+const fdzLugar = v => COMUNAS_SUR.has(norm(v.comuna)) || REGION_SUR.test(norm(v.region));
+const fdzMarcada = v => !!v.fdz || TXT_FDZ.test(textoVenta(v));
 function fdzPor(v) {
   if (COMUNAS_SUR.has(norm(v.comuna))) return 'comuna del sur';
   if (REGION_SUR.test(norm(v.region))) return 'región del sur';
   if (TXT_FDZ.test(textoVenta(v))) return 'marcada en comentarios';
+  if (v.fdz) return 'marcada en la venta';
   return '';
 }
 const esFdz = v => !!fdzPor(v);
@@ -1991,7 +1996,7 @@ function limitesDe(inst, emit = []) {
   const meta = metaMensual(), rg = a => a.reduce((t, v) => t + (Number(v.cantidad) || 0), 0), totInst = rg(inst);
   return Object.fromEntries(Object.entries(LIMITES).map(([k, L]) => { const f = k === 'cuest' ? esCuest : esFdz, arr = inst.filter(f), r = rg(arr), tope = Math.floor(meta * L.pct);
     const pend = rg(emit.filter(v => !esRemision(v) && f(v) && ['', 'REAGENDADO', 'EN EJECUCION', 'SIN AGENDA'].includes(v.inst || '')));
-    const ingresadas = emit.filter(f).length, reing = emit.filter(v => f(v) && esRemision(v)).length, sinMarca = k === 'fdz' ? emit.filter(v => esFdz(v) && !TXT_FDZ.test(textoVenta(v))).length : 0;
+    const ingresadas = emit.filter(f).length, reing = emit.filter(v => f(v) && esRemision(v)).length, sinMarca = k === 'fdz' ? emit.filter(v => esFdz(v) && !fdzMarcada(v)).length : 0;
     return [k, { ...L, arr, rgu: r, n: arr.length, ingresadas, reing, sinMarca, meta, tope, totInst, pend, pctMeta: meta ? r / meta : 0, uso: tope ? r / tope : 0 }]; }));
 }
 function limitesCard(list, filtrable) {
@@ -2001,8 +2006,8 @@ function limitesCard(list, filtrable) {
       <span class="lim-h"><b>${x.l}</b><span class="lim-pct">${(x.pctMeta * 100).toLocaleString('es-CL', { maximumFractionDigits: 1 })}%<small> de ${fmt(x.meta)}</small></span></span>
       <span class="lim-bar" aria-hidden="true"><i style="width:${Math.min(100, x.uso * 100)}%"></i></span>
       <span class="lim-s"><span><b>${fmt(x.rgu)} de ${fmt(x.tope)} RGU instalados</b> permitidos (${Math.round(x.pct * 100)}% de ${fmt(x.meta)})</span><span>${x.uso >= 1 ? `<b style="color:var(--crit)">Pasado por ${fmt(x.rgu - x.tope)} RGU</b>` : `Quedan <b>${fmt(x.tope - x.rgu)} RGU</b>`}</span></span>
-      <span class="sub"><b style="color:var(--fg)">${fmt(x.ingresadas)} ingresada${x.ingresadas === 1 ? '' : 's'} este mes</b>${x.reing ? ` (${fmt(x.reing)} reingreso${x.reing === 1 ? '' : 's'}, no suma${x.reing === 1 ? '' : 'n'} al límite)` : ''}${x.sinMarca ? ` · <b style="color:var(--warn)">${fmt(x.ingresadas - x.sinMarca)} marcada${x.ingresadas - x.sinMarca === 1 ? '' : 's'} en la planilla y ${fmt(x.sinMarca)} de comunas del sur sin marcar</b>` : ''} · ${fmt(x.n)} instalada${x.n === 1 ? '' : 's'}${x.pend ? ` · <b style="color:var(--warn)">+${fmt(x.pend)} RGU por instalar</b> que se sumarían` : ''} · ${esc(x.d)}</span></${filtrable ? 'button' : 'div'}>`).join('')}</div>
-    <p class="note" style="margin:10px 0 0">Cuenta los RGU de las ventas <b>instaladas</b> en el mes (también las de arrastre de meses anteriores que se instalaron este mes), sin remisiones. "Por instalar" son las ingresadas que todavía no se instalan. Cuestionario: dice "cuestionario" en comentarios. Fuera de zona: comuna desde Rancagua al sur (O'Higgins a Magallanes), o marcada "fuera de zona" en comentarios.</p></div>`;
+      <span class="sub"><b style="color:var(--fg)">${fmt(x.ingresadas)} ingresada${x.ingresadas === 1 ? '' : 's'} este mes</b>${x.reing ? ` (${fmt(x.reing)} reingreso${x.reing === 1 ? '' : 's'}, no suma${x.reing === 1 ? '' : 'n'} al límite)` : ''}${x.sinMarca ? ` · <b style="color:var(--warn)">${fmt(x.sinMarca)} de comunas del sur todavía sin la marca (se marcan desde Alertas)</b>` : ''} · ${fmt(x.n)} instalada${x.n === 1 ? '' : 's'}${x.pend ? ` · <b style="color:var(--warn)">+${fmt(x.pend)} RGU por instalar</b> que se sumarían` : ''} · ${esc(x.d)}</span></${filtrable ? 'button' : 'div'}>`).join('')}</div>
+    <p class="note" style="margin:10px 0 0">Cuenta los RGU de las ventas <b>instaladas</b> en el mes (también las de arrastre de meses anteriores que se instalaron este mes), sin remisiones. "Por instalar" son las ingresadas que todavía no se instalan. Cuestionario: dice "cuestionario" en comentarios. Fuera de zona: comuna desde Rancagua al sur (O'Higgins a Magallanes), o marcada "fuera de zona" en comentarios. Toda venta de una comuna del sur queda marcada fuera de zona al guardarla.</p></div>`;
 }
 const DASH = { vista: (() => { try { return localStorage.getItem('vp-dash-vista') || 'rgu'; } catch (e) { return 'rgu'; } })() };
 // Mismos indicadores medidos en RGU o en clientes (pedidos) del maestro.
@@ -2425,7 +2430,7 @@ const HIST_CAMPOS = [['inst', 'Instalación'], ['motivoCat', 'Motivo'], ['motivo
   ['boleta.estado', 'Estado de pago'], ['boleta.pagada', 'Fecha de pago'], ['boleta.venc', 'Vencimiento'], ['boleta.monto', 'Monto boleta'], ['boleta.nota', 'Nota boleta'],
   ['pedido', 'N° de pedido'], ['fecha', 'Fecha de emisión'], ['rut', 'RUT'], ['producto', 'Producto'], ['cantidad', 'RGU'], ['comuna', 'Comuna'], ['region', 'Región'],
   ['ejecutivo', 'Ejecutivo'], ['supervisor', 'Supervisor'], ['estatus', 'Estatus'], ['ticket', 'Ticket'], ['estado', 'Estado'], ['comentarios', 'Comentarios'],
-  ['vec.estado', 'VEC'], ['vec.nota', 'Nota VEC'], ['tsq.estado', 'Estado del ticket'], ['tsq.nota', 'Nota del ticket'], ['telefono', 'Teléfono'], ['cuentaFact', 'Cuenta de facturación'], ['reingresoDe.pedido', 'Reingreso de'], ['reingresadaComo.pedido', 'Reingresada como'], ['apelacion.estado', 'Apelación de plan'], ['apelacion.nota', 'Nota de apelación']];
+  ['vec.estado', 'VEC'], ['vec.nota', 'Nota VEC'], ['tsq.estado', 'Estado del ticket'], ['tsq.nota', 'Nota del ticket'], ['telefono', 'Teléfono'], ['cuentaFact', 'Cuenta de facturación'], ['reingresoDe.pedido', 'Reingreso de'], ['reingresadaComo.pedido', 'Reingresada como'], ['apelacion.estado', 'Apelación de plan'], ['apelacion.nota', 'Nota de apelación'], ['fdz', 'Fuera de zona']];
 function histVal(v, campo) {
   if (campo === 'vec.estado') { const k = vecEst(v); return k ? VEC_EST[k].l : 'No es VEC'; }
   if (campo === 'tsq.estado') { const k = esTsq(v) ? tsqEst(v) : ''; return k ? TSQ_EST[k].l : 'Sin error'; }
@@ -2434,6 +2439,7 @@ function histVal(v, campo) {
   if (x && typeof x === 'object') return [x.fecha ? fmtFecha(x.fecha) : '', x.bloque || ''].filter(Boolean).join(' ');
   if (/^\d{4}-\d{2}-\d{2}$/.test(x || '')) return fmtFecha(x);
   if (campo === 'inst') return x ? (INST_EST[x] || { l: x }).l : 'Sin estado';
+  if (campo === 'fdz') return x ? 'Sí' : 'No';
   if (campo === 'boleta.monto') return x ? clp(x) : '';
   return x == null ? '' : String(x);
 }
@@ -2441,6 +2447,7 @@ function histDiff(prev, v) {
   return HIST_CAMPOS.map(([c, l]) => [l, histVal(prev, c), histVal(v, c)]).filter(([, a, b]) => a !== b);
 }
 async function emiWrite(v, opt = {}) {
+  if (fdzLugar(v)) v.fdz = true; else if (v.fdz) delete v.fdz;
   // Registra cuándo cambió el estado de instalación: así el portal de supervisores avisa de instaladas y canceladas.
   const prev = opt.prev !== undefined ? opt.prev : (emiAll().find(x => x.id === v.id) || (ARR.data || []).find(x => x.id === v.id) || (CAL.emis && v.pedido ? CAL.emis.get(v.pedido) : null));
   // Fecha del último cambio de estado VEC / ticket (para saber hace cuánto se pidió).
@@ -2511,6 +2518,16 @@ function maeIndex() {
   return ix;
 }
 function maePedido(pedido) { const ix = maeIndex(); return ix && pedido ? ix.map.get(pedido) || null : null; }
+async function fdzMarcarTodas() {
+  if (soloLectura() || isSup()) { toast('Tu acceso es de solo lectura.', 'eye'); return; }
+  const list = emiMes().filter(v => fdzLugar(v) && !v.fdz);
+  if (!list.length) return;
+  toast(`Marcando ${list.length} venta${list.length === 1 ? '' : 's'} como fuera de zona…`, 'clock');
+  let ok = 0;
+  for (const v of list) { try { await emiWrite({ ...v }); ok++; } catch (e) { /* queda en la alerta para reintentar */ } }
+  toast(`${ok} venta${ok === 1 ? '' : 's'} marcada${ok === 1 ? '' : 's'} como fuera de zona`, 'checkc');
+  if (!COB.db) renderCurrent();
+}
 const sinDueno = v => !String(v.ejecutivo || '').trim() || !nameKey(v.supervisor);
 function emiIssues(v) {
   const out = [];
@@ -2672,12 +2689,14 @@ function renderEmiForm() {
     </div>
   </form>`;
   const form = $('#emiForm');
-  const limHint = () => { const h = $('#efLim'); if (!h) return; const X = limitesDe(instaladasMes(), emiMes()), v = { comuna: f.comuna, comentarios: f.comentarios, pedido: f.pedido, cantidad: Number(f.cantidad) || 0 }, msgs = [];
+  const limHint = () => { const h = $('#efLim'); if (!h) return; const X = limitesDe(instaladasMes(), emiMes()), v = { comuna: f.comuna, region: f.region, comentarios: f.comentarios, pedido: f.pedido, cantidad: Number(f.cantidad) || 0 }, msgs = [];
+    const fz = form.querySelector('[data-marca="FUERA DE ZONA"]'), sur = fdzLugar(v);
+    if (fz) { fz.disabled = sur; fz.title = sur ? 'Comuna del sur: la venta se guarda marcada fuera de zona' : ''; fz.setAttribute('aria-pressed', String(sur || TXT_FDZ.test(f.comentarios))); }
     if (esCuest(v)) msgs.push(`Cuestionario: llevas ${X.cuest.rgu} de ${X.cuest.tope} RGU instalados del mes (+${X.cuest.pend} por instalar)`);
-    if (esFdz(v)) msgs.push(`Fuera de zona (${fdzPor(v)}): llevas ${X.fdz.rgu} de ${X.fdz.tope} RGU instalados del mes (+${X.fdz.pend} por instalar)`);
+    if (esFdz(v)) msgs.push(`Fuera de zona (${fdzPor(v)}${sur ? ', se guarda con la marca' : ''}): llevas ${X.fdz.rgu} de ${X.fdz.tope} RGU instalados del mes (+${X.fdz.pend} por instalar)`);
     h.className = 'hint' + (msgs.length && (X.cuest.uso >= .8 && esCuest(v) || X.fdz.uso >= .8 && esFdz(v)) ? ' bad' : ''); h.textContent = msgs.join(' · '); };
   $$('[data-marca]', form).forEach(b => b.addEventListener('click', () => { const w = b.dataset.marca, re = new RegExp('\\s*' + w.replace(/ /g, '\\s*') + '\\s*', 'i'); const on = !re.test(f.comentarios); f.comentarios = on ? [f.comentarios.trim(), w].filter(Boolean).join(' · ') : f.comentarios.replace(re, ' ').replace(/^[\s·]+|[\s·]+$/g, '').replace(/\s*·\s*·\s*/g, ' · '); $('#efCom2').value = f.comentarios; b.setAttribute('aria-pressed', String(on)); f.dirty = true; limHint(); }));
-  ['efCom', 'efCom2', 'efCant'].forEach(id => $('#' + id).addEventListener('input', limHint)); $('#efCom').addEventListener('change', limHint); limHint();
+  ['efCom', 'efCom2', 'efCant'].forEach(id => $('#' + id).addEventListener('input', limHint)); $('#efCom').addEventListener('change', limHint); $('#efReg').addEventListener('change', () => setTimeout(limHint)); limHint();
   $$('[data-tipo]', form).forEach(b => b.addEventListener('click', () => { f.estatus = b.dataset.tipo; f.dirty = true; $$('[data-tipo]', form).forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.setAttribute('aria-checked', String(x === b)); }); $('#efTkBox').hidden = !/ERROR/.test(f.estatus); }));
   $$('[data-ef]', form).forEach(inp => inp.addEventListener(inp.tagName === 'SELECT' || inp.type === 'date' ? 'change' : 'input', () => {
     f[inp.dataset.ef] = inp.value; f.dirty = true;
@@ -2896,7 +2915,7 @@ function renderEmiTable() {
       <td class="num">${fmtFecha(v.fecha).slice(0, 5)}<div class="sub" title="Ingresada por ${esc(ingresoDe(v))}">por ${esc(ingresoCorto(v))}</div>${v.estatus && v.estatus !== 'VENTA NUEVA' ? `<div class="sub" style="color:${tipoIng(v.estatus).t}">${esc(tipoIng(v.estatus).l)}</div>` : ''}</td>
       <td class="mono">${esc(v.rut) || '—'}${v.telefono ? `<div class="sub">${telLink(v.telefono) || esc(v.telefono)}</div>` : ''}${v.cuentaFact ? `<div class="sub">Cta. ${esc(v.cuentaFact)}</div>` : ''}</td>
       <td style="min-width:190px;white-space:normal">${mk(v.marca)}<div class="sub">${esc(v.producto) || '—'} · ${v.cantidad || 0} RGU</div></td>
-      <td>${esc(v.comuna) || '—'}<div class="sub">${esc(v.region)}</div>${esFdz(v) ? `<div class="sub" style="color:var(--warn)" title="${esc(fdzPor(v))}">Fuera de zona${TXT_FDZ.test(textoVenta(v)) ? '' : ' · sin marcar en la planilla'}</div>` : ''}${esCuest(v) ? '<div class="sub" style="color:var(--info)">Cuestionario</div>' : ''}</td>
+      <td>${esc(v.comuna) || '—'}<div class="sub">${esc(v.region)}</div>${esFdz(v) ? `<div class="sub" style="color:var(--warn)" title="${esc(fdzPor(v))}">Fuera de zona${fdzMarcada(v) ? '' : ' · falta la marca'}</div>` : ''}${esCuest(v) ? '<div class="sub" style="color:var(--info)">Cuestionario</div>' : ''}</td>
       <td>${sinDueno(v) ? `<span class="badge" style="--t:var(--violet)">Por asignar</span>${v.ejecutivo ? `<div class="sub">${esc(v.ejecutivo)}</div>` : ''}${v.supervisor ? `<div class="sub">${esc(v.supervisor)}</div>` : ''}` : `${esc(v.ejecutivo)}<div class="sub">${esc(v.supervisor)}</div>`}</td>
       <td class="num">${v.agenda?.fecha ? fmtFecha(v.agenda.fecha).slice(0, 5) : '—'}<div class="sub">${esc(v.agenda?.bloque || '')}</div></td>
       <td>${instCell(v)}</td>
@@ -3083,6 +3102,8 @@ function planillaCambios(nueva, actual) {
   const vacio = x => x == null || x === '' || x === 0 || (typeof x === 'object' && !Object.values(x).some(y => y));
   const out = CAMPOS_PLANILLA.filter(k => !enApp.has(k) && !vacio(nueva[k]) && JSON.stringify(nueva[k]) !== JSON.stringify(actual[k] ?? ''));
   if (nueva.vec && !(actual.vec && actual.vec.estado) && !enApp.has('vec')) out.push('vec');
+  // Ventas del sur que ya estaban en la base sin la marca fuera de zona: se marcan al importar.
+  if (!actual.fdz && fdzLugar({ ...actual, ...Object.fromEntries(out.map(k => [k, nueva[k]])) })) { nueva.fdz = true; out.push('fdz'); }
   return { campos: out, respetados: [...enApp].filter(k => CAMPOS_PLANILLA.includes(k) && !vacio(nueva[k]) && JSON.stringify(nueva[k]) !== JSON.stringify(actual[k] ?? '')) };
 }
 function renderEmiImport() {
