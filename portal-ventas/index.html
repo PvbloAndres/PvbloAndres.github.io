@@ -2392,7 +2392,8 @@ function emiBuildConfig(wb, ventas) {
 function emiCfg() {
   const base = EMI.cfg || { ejecutivos: [], supervisores: [], productos: [], comunas: [], bloques: EMI_DEF.bloques, estatus: EMI_DEF.estatus, estados: EMI_DEF.estados, regiones: EMI_DEF.regiones };
   const all = emiAll(), add = (a, b) => [...new Map([...a, ...b].filter(Boolean).map(v => [norm(v), v])).values()].sort((x, y) => x.localeCompare(y, 'es'));
-  return { ...base, ejecutivos: add(base.ejecutivos, all.map(v => v.ejecutivo)), supervisores: add(base.supervisores, all.map(v => v.supervisor)), productos: add(base.productos, all.map(v => v.producto)), comunas: add(base.comunas, all.map(v => v.comuna)) };
+  const supU = (a, b) => [...new Map([...a, ...b].filter(Boolean).map(supFix).map(v => [nameKey(v) || norm(v), v])).values()].sort((x, y) => x.localeCompare(y, 'es'));
+  return { ...base, ejecutivos: add(base.ejecutivos, all.map(v => v.ejecutivo)), supervisores: supU(base.supervisores, all.map(v => v.supervisor)), productos: add(base.productos, all.map(v => v.producto)), comunas: add(base.comunas, all.map(v => v.comuna)) };
 }
 const emiAll = () => COB.db ? pendSobre(EMI.list) : EMI.local;
 /* ---------- Cambios guardados sin señal ---------- */
@@ -3112,13 +3113,19 @@ function supCanonMapa(nombres) {
   orden.forEach(n => { const c = canon.find(x => mismoSupervisor(x, n)); if (c) mapa[n] = c; else { canon.push(n); mapa[n] = n; } });
   return mapa;
 }
+// Correcciones guardadas por el equipo: "Monita Soto" → "Camila Herrera". Se aplican al ingresar, importar, en las listas y en calidad.
+const supAlias = () => (EMI.cfg && EMI.cfg.aliasSup) || {};
+const supFix = n => (n && supAlias()[nameKey(n)]) || n;
 function supCanon(nombre) {
   if (!nombre) return nombre;
-  const conocidos = [...emiAll().map(v => v.supervisor), ...((emiCfg().supervisores) || [])];
+  nombre = supFix(nombre);
+  const conocidos = [...emiAll().map(v => supFix(v.supervisor)), ...((emiCfg().supervisores) || [])];
   return supCanonMapa([...conocidos, nombre])[nombre] || nombre;
 }
 function emiParseImport(I) {
-  const out = emiParseImportBruto(I), mapa = supCanonMapa(out.map(v => v.supervisor));
+  const out = emiParseImportBruto(I);
+  out.forEach(v => { const f = supFix(v.supervisor); if (f !== v.supervisor) { v.supervisorOriginal = v.supervisor; v.supervisor = f; } });
+  const mapa = supCanonMapa(out.map(v => v.supervisor));
   out.forEach(v => { if (v.supervisor && mapa[v.supervisor] && mapa[v.supervisor] !== v.supervisor) { v.supervisorOriginal = v.supervisor; v.supervisor = mapa[v.supervisor]; } });
   return out;
 }
@@ -3755,10 +3762,10 @@ async function calImportWorkbook(wb, archivo) {
   return true;
 }
 /* Cada supervisor recibe una copia con SOLO sus boletas del reporte, en calidad/<periodo>/sup (la base solo le deja leer la suya). */
-const supKeyCal = n => String(n || '').trim().toLowerCase();
+const supKeyCal = n => String(supFix(n) || '').trim().toLowerCase();
 async function calPublicarSup(periodo, rows, meta) {
   if (!COB.db || COB.canWrite === false || soloLectura() || !rows.length) return;
-  const g = new Map(); rows.forEach(r => { const k = supKeyCal(r[CI.sup]); if (!k) return; const x = g.get(k) || { nombres: {}, rows: [] }; x.nombres[r[CI.sup]] = (x.nombres[r[CI.sup]] || 0) + 1; x.rows.push(r); g.set(k, x); });
+  const g = new Map(); rows.forEach(r => { const k = supKeyCal(r[CI.sup]); if (!k) return; const x = g.get(k) || { nombres: {}, rows: [] }; x.nombres[supFix(r[CI.sup])] = (x.nombres[supFix(r[CI.sup])] || 0) + 1; x.rows.push(r); g.set(k, x); });
   const ids = new Set();
   for (const [k, x] of g) {
     const id = 's' + hashTxt(k); ids.add(id);
@@ -4630,7 +4637,75 @@ async function subirArchivo(file) {
   } catch (e) { subMsg(`No se pudo leer <b>${esc(file.name)}</b>. Si viene de WhatsApp o Drive, descárgalo al teléfono primero y vuelve a intentarlo.`); }
   finally { SUBIR.ocupado = false; }
 }
-const SPV = { sup: '', vf: 'todas', q: '', ej: '', page: 1 };
+const SPV = { sup: '', vf: 'todas', q: '', ej: '', page: 1, unificando: false, manual: false };
+// Nombres de supervisor que parecen el mismo escrito distinto ("Monita Soto" y "Camila Herrera"): el más usado se propone como correcto.
+function supDuplicados() {
+  const cuenta = {}, sumar = (n, k) => { const t = String(n || '').trim(); if (t && nameKey(t)) cuenta[t] = (cuenta[t] || 0) + k; };
+  emiMes().forEach(v => sumar(v.supervisor, 1)); ((EMI.cfg && EMI.cfg.supervisores) || []).forEach(n => sumar(n, 0));
+  const nombres = Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a] || (a === a.toUpperCase()) - (b === b.toUpperCase()));
+  const vistos = new Set(), grupos = [];
+  nombres.forEach(n => {
+    if (vistos.has(n)) return;
+    const fijo = supAlias()[nameKey(n)];
+    const bueno = fijo || n, malos = nombres.filter(m => m !== bueno && !vistos.has(m) && nameKey(m) !== nameKey(bueno) && (mismoSupervisor(m, bueno) || supAlias()[nameKey(m)] === bueno));
+    if (fijo && n !== fijo) malos.unshift(n);
+    [bueno, ...malos].forEach(m => vistos.add(m));
+    if (malos.length) grupos.push({ bueno, malos: [...new Set(malos)], cuenta });
+  });
+  return grupos;
+}
+// Pasa todas las ventas (de cualquier mes) del nombre mal escrito al correcto y recuerda la corrección para el futuro.
+async function supUnificar(pares) {
+  if (soloLectura() || SPV.unificando || !pares.length) return;
+  SPV.unificando = true; renderSpBody();
+  let n = 0, fallas = 0;
+  for (const [malo, bueno] of pares) {
+    let ventas = [];
+    if (COB.db) { try { ventas = (await COB.db.collection('emisiones').where('supervisor', '==', malo).get()).docs.map(d => ({ ...d.data(), id: d.id })); } catch (e) { fallas++; } }
+    else ventas = EMI.local.filter(v => v.supervisor === malo);
+    for (const v of ventas) { try { await emiWrite({ ...JSON.parse(JSON.stringify(v)), supervisor: bueno }, { prev: v }); n++; } catch (e) { fallas++; } }
+  }
+  let recordado = true;
+  try {
+    const cfg = JSON.parse(JSON.stringify(EMI.cfg || { ejecutivos: [], supervisores: [], productos: [], comunas: [], bloques: EMI_DEF.bloques, estatus: EMI_DEF.estatus, estados: EMI_DEF.estados, regiones: EMI_DEF.regiones }));
+    cfg.aliasSup = { ...(cfg.aliasSup || {}) };
+    pares.forEach(([malo, bueno]) => { cfg.aliasSup[nameKey(malo)] = bueno; });
+    const fuera = new Set(pares.map(([malo]) => norm(malo)));
+    cfg.supervisores = [...new Set([...(cfg.supervisores || []).filter(x => !fuera.has(norm(x))), ...pares.map(([, bueno]) => bueno)])].sort((a, b) => a.localeCompare(b, 'es'));
+    if (COB.db) await COB.db.doc('config/listas').set(cfg); else EMI.cfg = cfg;
+    EMI.cfg = cfg;
+  } catch (e) { recordado = false; }
+  SPV.unificando = false; SPV.manual = false;
+  toast(`${fmt(n)} venta${n === 1 ? '' : 's'} pasada${n === 1 ? '' : 's'} al nombre correcto${fallas ? ` · ${fallas} no se pudieron guardar` : ''}${recordado ? '' : ' · un administrador debe repetirlo para que las próximas importaciones lo corrijan solas'}`, fallas ? 'alertc' : 'checkc');
+  renderSpBody(); renderSupPicker();
+}
+function supDupHTML() {
+  if (soloLectura()) return '';
+  const g = supDuplicados(), todos = (EMI.cfg && EMI.cfg.supervisores || []).concat(emiMes().map(v => v.supervisor)).filter(Boolean);
+  const opciones = [...new Map(todos.map(n => [n, n])).keys()].sort((a, b) => a.localeCompare(b, 'es'));
+  if (!g.length && !SPV.manual) return `<p class="note" style="margin:0;text-align:right"><button type="button" class="btn ghost sm" id="supManual">${ic('user')}Corregir el nombre de un supervisor</button></p>`;
+  const cnt = (gr, n) => gr.cuenta[n] || 0;
+  return `<div class="card" id="supDup" style="border-color:color-mix(in srgb,var(--warn) 45%,var(--line))">
+    <div class="card-h"><div><h3>Nombres de supervisor repetidos o mal escritos</h3><p>Las ventas con el nombre mal escrito no le aparecen a su supervisor. Al unificar, todas sus ventas (de cualquier mes) pasan al nombre correcto, queda en el historial de cada venta y las próximas importaciones lo corrigen solas.</p></div>
+      ${g.length > 1 ? `<button type="button" class="btn sm primary" id="supDupTodos" ${SPV.unificando ? 'disabled' : ''}>Unificar todos</button>` : ''}</div>
+    ${SPV.unificando ? `<div class="factib"><span class="spin"></span><span>Pasando las ventas al nombre correcto…</span></div>` : ''}
+    <div style="display:grid;gap:10px">${g.flatMap(gr => gr.malos.map(m => `<div class="toggle-row" style="flex-wrap:wrap;gap:10px">
+      <span style="flex:1;min-width:200px"><b style="color:var(--crit);text-decoration:line-through">${esc(m)}</b> <span class="sub">${fmt(cnt(gr, m))} venta${cnt(gr, m) === 1 ? '' : 's'} este mes</span></span>
+      <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">→ <select class="input mini" data-dupbueno="${esc(m)}" aria-label="Nombre correcto para ${esc(m)}" style="width:220px;max-width:100%">${opciones.filter(o => o !== m).map(o => `<option ${o === gr.bueno ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>
+      <button type="button" class="btn sm" data-dupuno="${esc(m)}" ${SPV.unificando ? 'disabled' : ''}>Unificar</button></span></div>`)).join('')}</div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">${SPV.manual ? `<div class="toggle-row" style="flex-wrap:wrap;gap:10px"><span>Pasar las ventas de</span>
+      <select class="input mini" id="supManMalo" aria-label="Nombre mal escrito" style="max-width:220px">${opciones.map(o => `<option>${esc(o)}</option>`).join('')}</select><span>a</span>
+      <select class="input mini" id="supManBueno" aria-label="Nombre correcto" style="max-width:220px">${opciones.map(o => `<option>${esc(o)}</option>`).join('')}</select>
+      <button type="button" class="btn sm" id="supManGo" ${SPV.unificando ? 'disabled' : ''}>Unificar</button></div>` : `<button type="button" class="btn ghost sm" id="supManual">${ic('user')}Corregir otro nombre</button>`}</div>
+  </div>`;
+}
+function bindSupDup(box) {
+  const par = m => [m, (box.querySelector(`[data-dupbueno="${CSS.escape(m)}"]`) || {}).value];
+  $$('[data-dupuno]', box).forEach(b => b.addEventListener('click', () => { const [m, bueno] = par(b.dataset.dupuno); if (bueno && confirm(`¿Pasar todas las ventas de "${m}" a "${bueno}"?`)) supUnificar([[m, bueno]]); }));
+  $('#supDupTodos', box)?.addEventListener('click', () => { const pares = $$('[data-dupuno]', box).map(b => par(b.dataset.dupuno)).filter(([, bueno]) => bueno); if (confirm(`¿Unificar ${pares.length} nombres?\n\n${pares.map(([m, bueno]) => `${m} → ${bueno}`).join('\n')}`)) supUnificar(pares); });
+  $('#supManual', box)?.addEventListener('click', () => { SPV.manual = true; renderSpBody(); setTimeout(() => $('#supManMalo')?.scrollIntoView({ block: 'center' }), 50); });
+  $('#supManGo', box)?.addEventListener('click', () => { const m = $('#supManMalo').value, bueno = $('#supManBueno').value; if (!m || !bueno || m === bueno) { toast('Elige dos nombres distintos.', 'alertc'); return; } if (confirm(`¿Pasar todas las ventas de "${m}" a "${bueno}"?`)) supUnificar([[m, bueno]]); });
+}
 const rguV = v => Number(v.cantidad) || 0;
 // arr = ventas del mes (vendidas); inst = ventas instaladas en el mes (base de los límites 5% y 3%).
 function limPct(arr, inst) {
@@ -4679,12 +4754,13 @@ function renderSpBody() {
       ${(() => { const L = limPct(arr, instDe(n)), c = (p, t) => p > t ? 'var(--crit)' : p > t * .8 ? 'var(--warn)' : 'var(--good)'; return `<span class="sp-lim"><span class="sub" style="flex-basis:100%">De sus ${fmt(L.it)} RGU instalados en el mes:</span><span>Cuestionario <b style="color:${c(L.pcu, LIMITES.cuest.pct)}">${pct1(L.pcu)}</b><small> / 5%</small></span><span>Fuera de zona <b style="color:${c(L.pfz, LIMITES.fdz.pct)}">${pct1(L.pfz)}</b><small> / 3%</small></span></span>`; })()}</button>`; };
   const lista = SPV.sup ? de(SPV.sup) : [];
   const editar = !soloLectura();
-  box.innerHTML = `<div class="sp-grid">${[...sups, ...(sinSup.length ? ['—'] : [])].map(tile).join('') || '<p class="note">No hay ventas en este mes.</p>'}</div>
+  box.innerHTML = `${supDupHTML()}<div class="sp-grid">${[...sups, ...(sinSup.length ? ['—'] : [])].map(tile).join('') || '<p class="note">No hay ventas en este mes.</p>'}</div>
     ${SPV.sup ? `<div class="card stack" id="spVentas">
       <div class="card-h" style="margin:0;flex-wrap:wrap;gap:10px"><div><h3>${SPV.sup === '—' ? 'Ventas sin supervisor' : esc(SPV.sup)} · ${fmt(lista.length)} ventas · ${fmt(limPct(lista).tot)} RGU</h3><p>${editar ? 'Cambia el estado directo en la columna Instalación · toca la fila para abrir la ficha' : 'Toca la fila para ver la ficha'}</p></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">${SPV.sup !== '—' ? `<button class="btn sm" id="spComo">${ic('eye')}Ver como lo ve ${esc(titleCase(SPV.sup.split(/\s+/)[0]))}</button>` : ''}<button class="btn sm ghost" id="spCerrar">${ic('x')}Cerrar</button></div></div>
       <div><h4 class="dt-h">Por vendedor · el total de RGU del supervisor es el 100%</h4>${vendTablaHTML(lista, 'data-spej', instDe(SPV.sup))}<p class="note" style="margin:8px 0 0">Cuestionario y fuera de zona: % de los RGU <b>instalados</b> en el mes de cada vendedor (límites 5% y 3%), porque la meta es de instalación. Toca un vendedor para ver sus ventas abajo.</p></div>
       ${ventasPanel(lista, SPV, 'sp')}</div>` : ''}`;
+  bindSupDup(box);
   $$('[data-sp]', box).forEach(b => b.addEventListener('click', () => { const n = b.dataset.sp, ya = SPV.sup && (n === '—' ? SPV.sup === '—' : nameKey(SPV.sup) === nameKey(n)); SPV.sup = ya ? '' : n; SPV.q = ''; SPV.ej = ''; SPV.vf = 'todas'; SPV.page = 1; renderSpBody(); if (!ya) $('#spVentas')?.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' }); }));
   $('#spCerrar')?.addEventListener('click', () => { SPV.sup = ''; renderSpBody(); });
   $$('tr[data-spej]', box).forEach(tr => tr.addEventListener('click', () => { SPV.ej = tr.dataset.spej; SPV.vf = 'todas'; SPV.page = 1; renderSpBody(); $('#spQ')?.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' }); }));
@@ -4803,7 +4879,7 @@ function renderSupTable(list) {
 function renderSupPicker() {
   const box = $('#supPickBox'); if (!box) return;
   if (window.VP_STANDALONE && !ROLE.preview && isSup()) { box.hidden = true; return; }
-  const names = [...new Map([...emiCfg().supervisores, ...emiAll().map(v => v.supervisor)].filter(Boolean).map(n => [nameKey(n), n])).values()].sort((a, b) => a.localeCompare(b, 'es'));
+  const names = [...new Map([...emiCfg().supervisores, ...emiAll().map(v => supFix(v.supervisor))].filter(Boolean).map(n => [nameKey(n), n])).values()].sort((a, b) => a.localeCompare(b, 'es'));
   box.hidden = false;
   box.innerHTML = `<label for="supPreview" class="eyebrow" style="display:block;margin-bottom:6px">Ver como supervisor</label><select class="input" id="supPreview" style="height:38px"><option value="">Vista completa</option>${names.map(n => `<option ${ROLE.preview && ROLE.sup === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
   $('#supPreview').addEventListener('change', e => setSupervisor(e.target.value, !!e.target.value));
