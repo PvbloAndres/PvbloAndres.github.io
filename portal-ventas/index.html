@@ -644,7 +644,8 @@ button.lim { cursor: pointer; } button.lim[aria-pressed="true"] { border-color: 
 .sb-ll { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--fg-2); cursor: pointer; white-space: nowrap; min-height: 32px; }
 .sb-ll input { width: 18px; height: 18px; accent-color: var(--good); }
 .sb-mini { display: grid; gap: 4px; text-align: left; cursor: pointer; color: var(--fg); font: inherit; width: 100%; }
-.sb-mini b { font: 800 34px/1.1 var(--font-display); }
+.sb-mini > b { font: 800 34px/1.1 var(--font-display); }
+.sb-mini .note b { font-weight: 600; }
 @media (max-width: 760px) { .sb-hero { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; } .sb-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sb-kpis .sb-k:first-child { grid-column: 1 / -1; } }
 .tabs-bar { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: -6px 0 16px; padding: 4px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); position: sticky; top: calc(var(--topbar-h, 64px) + 6px); z-index: 5; }
 .tabs-bar::-webkit-scrollbar { display: none; }
@@ -708,7 +709,7 @@ button.lim { cursor: pointer; } button.lim[aria-pressed="true"] { border-color: 
 
 /* ---------- modo app en el teléfono ---------- */
 .bottom-nav { display: none; }
-body.sup-mode #bottomNav [data-bn="seguimiento"], body.sup-mode #bottomNav [data-bn="ingreso"], body.sup-mode #bottomNav [data-bn="calidad"], body.sup-mode #searchBtn, body.sup-mode .brand-switch { display: none !important; }
+body:not(.sup-mode) #bottomNav .bn-sup, body.sup-mode #bottomNav [data-bn="dashboard"], body.sup-mode #bottomNav [data-bn="seguimiento"], body.sup-mode #bottomNav [data-bn="ingreso"], body.sup-mode #bottomNav [data-bn="calidad"], body.sup-mode #searchBtn, body.sup-mode .brand-switch { display: none !important; }
 body.sup-mode .bell-dot { background: var(--accent); }
 .install-steps { display: grid; gap: 14px; }
 .install-steps ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; color: var(--fg-2); }
@@ -1036,6 +1037,18 @@ const NAV = [
   { id: 'alertas', n: 'Alertas', i: 'bell', alerts: true },
   { id: 'ayuda', n: 'Ayuda', i: 'help' },
 ];
+// Portal del supervisor: cada tema en su propia sección del menú, en vez de pestañas y una página larga.
+const SUP_NAV = [
+  { id: 'supervisor', n: 'Inicio', corto: 'Inicio', i: 'home', tab: 'resumen' },
+  { id: 'sup-ventas', n: 'Mis ventas', corto: 'Ventas', i: 'trend', tab: 'ventas' },
+  { id: 'sup-calidad', n: 'Calidad de boletas', corto: 'Calidad', i: 'shield', tab: 'cobranza' },
+  { id: 'sup-vendedores', n: 'Mis vendedores', corto: 'Vendedores', i: 'user', tab: 'vendedores' },
+  { id: 'sup-arrastre', n: 'Ventas de arrastre', corto: 'Arrastre', i: 'clock', tab: 'arrastre' },
+  { id: 'sup-avisos', n: 'Avisos', corto: 'Avisos', i: 'bell', tab: 'avisos' },
+];
+const supSec = () => SUP_NAV.find(x => x.id === location.hash.slice(1)) || SUP_NAV[0];
+// Ir a una sección del supervisor (si ya está ahí, solo redibuja).
+function supIr(tab) { const sec = SUP_NAV.find(x => x.tab === tab) || SUP_NAV[0]; if (location.hash.slice(1) === sec.id) { SUP.tab = tab; renderSupBody(); window.scrollTo({ top: 0 }); } else location.hash = sec.id; }
 const TITLES = { reportes: 'Reportes WhatsApp', supervisor: 'Mis ventas', supervisores: 'Supervisores', subir: 'Subir archivos', dashboard: 'Dashboard', ingreso: 'Ingreso de ventas', seguimiento: 'Seguimiento de ventas', vec: 'VEC, TSQ y canceladas', ventas: 'Ventas', calidad: 'Calidad de boletas', alertas: 'Alertas', ayuda: 'Ayuda' };
 
 function renderNav(cur) {
@@ -1043,7 +1056,8 @@ function renderNav(cur) {
   const calN = calNavCount();
   const alN = isSup() ? 0 : alertas().filter(a => a.sev !== 'info').length;
   updateAlertBell(alN);
-  const items = isSup() ? [{ id: 'supervisor', n: 'Mis ventas', i: 'trend' }] : NAV;
+  if (isSup()) cur = supSec().id;
+  const items = isSup() ? SUP_NAV : NAV;
   $('#nav').innerHTML = items.map(x => x.sep ? '<div class="nav-sep"></div>' :
     `<a href="#${x.id}" class="${x.id === cur ? 'active' : ''}" ${x.id === cur ? 'aria-current="page"' : ''}>${ic(x.i)}<span>${x.n}</span>${x.tag ? `<span class="tag">${x.tag}</span>` : ''}${x.count && calN ? `<span class="count">${calN}</span>` : ''}${x.seg && segN ? `<span class="count">${segN}</span>` : ''}${x.alerts && alN ? `<span class="count">${alN}</span>` : ''}${x.soon ? '<span class="tag soon">Pronto</span>' : ''}</a>`).join('');
   updateBottomNav(cur);
@@ -1056,8 +1070,9 @@ function route() {
   if (view === 'supervisor' && !isSup()) view = 'dashboard';
   if ($('#app').hidden) return;
   renderSupPicker();
+  if (isSup()) SUP.tab = supSec().tab;
   renderNav(view);
-  $('#viewTitle').textContent = TITLES[view];
+  $('#viewTitle').textContent = isSup() ? supSec().n : TITLES[view];
   const el = $('#view');
   el.classList.remove('view-enter'); void el.offsetWidth; el.classList.add('view-enter');
   renderView(view, el);
@@ -3574,6 +3589,7 @@ function updateBottomNav(cur) {
   });
 }
 $('#bnMore').addEventListener('click', () => $('#sidebar').classList.toggle('open'));
+$('#bnMore').insertAdjacentHTML('beforebegin', SUP_NAV.slice(0, 4).map(x => `<a href="#${x.id}" data-bn="${x.id}" class="bn-sup">${ic(x.i)}<span>${x.corto}</span></a>`).join(''));
 const PORTAL_URL = window.VP_STANDALONE ? ((window.NOVAVENTAS_CONFIG || {}).appUrl || location.origin + location.pathname) : 'https://claude.ai/artifact/BZRdoPNhUP4QLB89qohyPU';
 function openInstall() {
   const link = PORTAL_URL;
@@ -4683,13 +4699,12 @@ function viewSupervisor(el) {
   el.innerHTML = `
   ${ROLE.preview ? `<div class="prev-banner">${ic('eye')}<div class="grow"><b>Vista previa:</b> así ve el portal ${esc(ROLE.sup)}. Solo sus ventas, sin ingreso ni edición.</div><button class="btn sm" id="supExit">Salir de la vista previa</button></div>` : ''}
   <div class="hello">
-    <div><h2>Hola${ROLE.sup ? `, <span>${esc(titleCase(ROLE.sup.split(/\s+/)[0]))}</span>` : ''}</h2><p>Tus ventas como supervisor${ROLE.sup ? ' · ' + esc(ROLE.sup) : ''} · solo lectura</p></div>
+    <div>${SUP.tab === 'resumen' ? `<h2>Hola${ROLE.sup ? `, <span>${esc(titleCase(ROLE.sup.split(/\s+/)[0]))}</span>` : ''}</h2>` : `<h2>${esc(supSec().n)}</h2>`}<p>${{ resumen: 'Tu mes de un vistazo', ventas: 'Busca y filtra tus ventas', cobranza: 'Boletas pagadas en plazo y clientes para llamar', vendedores: 'Cómo va cada vendedor de tu equipo', arrastre: 'Ventas de meses anteriores que siguen pendientes', avisos: 'Ventas que se instalaron o cancelaron' }[SUP.tab] || ''}${ROLE.sup ? ' · ' + esc(ROLE.sup) : ''} · solo lectura</p></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <select class="input" id="supMes" aria-label="Mes" style="height:38px;width:auto">${meses.map(m => `<option value="${m}" ${m === EMI.mes ? 'selected' : ''}>${mesLabel(m)}</option>`).join('')}</select>
       ${notifOk ? `<button class="btn sm primary" id="supNotif">${ic('bell')}Activar avisos en este dispositivo</button>` : ''}
     </div>
   </div>
-  <div class="tabs-bar" role="tablist" aria-label="Secciones" id="supTabs"></div>
   <div id="supBody" style="display:grid;gap:22px;grid-template-columns:minmax(0,1fr)"></div>`;
   $('#supExit')?.addEventListener('click', () => { const s = $('#supPreview'); if (s) s.value = ''; setSupervisor('', false); location.hash = 'dashboard'; });
   $('#supMes').addEventListener('change', e => { EMI.mes = e.target.value; SUP.prevInst = null; SUP.page = 1; emiSubscribe(); renderSupBody(); });
@@ -4701,7 +4716,6 @@ function renderSupBody() {
   const box = $('#supBody'); if (!box) return;
   if (!EMI.loaded) { box.innerHTML = `<div class="card"><div class="factib"><span class="spin"></span><span>Cargando tus ventas…</span></div></div>`; return; }
   const list = supList();
-  supTabsRender(list);
   if (!list.length && SUP.tab !== 'arrastre' && SUP.tab !== 'cobranza') { box.innerHTML = `<div class="soon-box"><span class="eyebrow">Sin ventas en ${mesLabel(EMI.mes).toLowerCase()}</span><h3>Aún no hay ventas a tu nombre este mes</h3><p style="margin:0;color:var(--fg-2);max-width:60ch">Aquí aparecen las ventas donde figuras como supervisor${ROLE.sup ? ` (${esc(ROLE.sup)})` : ''}. Si falta alguna, avisa a quien ingresa las ventas para que revise el nombre del supervisor.</p></div>`; return; }
   const cnt = k => list.filter(v => (v.inst || '') === k).length;
   const pend = list.filter(v => ['', 'REAGENDADO', 'EN EJECUCION', 'SIN AGENDA'].includes(v.inst || '')).length;
@@ -4723,6 +4737,23 @@ function renderSupBody() {
   }
   if (SUP.tab === 'arrastre') { if (!supArrastreLista()) { box.innerHTML = `<div class="card"><div class="factib"><span class="spin"></span><span>Buscando tus ventas de meses anteriores…</span></div></div>`; arrCargar().then(() => { if (currentView() === 'supervisor') renderSupBody(); }); return; } box.innerHTML = supArrastreHTML() || `<div class="card"><p class="note" style="margin:0">No tienes ventas de arrastre: todas las de meses anteriores ya están completadas o canceladas.</p></div>`; updateSupBell(); return; }
   if (SUP.tab === 'cobranza') { box.innerHTML = supBoletasHTML(); bindSupBoletas(box); updateSupBell(); return; }
+  const irVentas = () => supIr('ventas');
+  if (SUP.tab === 'vendedores') {
+    box.innerHTML = `<div class="card"><div class="card-h"><div><h3>Tu equipo · ${fmt(ejs.length)} vendedor${ejs.length === 1 ? '' : 'es'}</h3><p>RGU por vendedor · tu total de RGU es el 100% · cuestionarios hasta 5% y fuera de zona hasta 3% de lo instalado · toca uno para ver sus ventas</p></div></div>
+      ${vendTablaHTML(list, 'data-supej', instaladasMes().filter(v => nameKey(v.supervisor) && sameName(v.supervisor, ROLE.sup)))}</div>`;
+    $$('tr[data-supej]', box).forEach(tr => tr.addEventListener('click', () => { SUP.ej = tr.dataset.supej; SUP.vf = 'todas'; SUP.page = 1; irVentas(); }));
+    updateSupBell(); return;
+  }
+  if (SUP.tab === 'avisos') {
+    box.innerHTML = `<div class="card" id="supAvisos">
+      <div class="card-h"><div><h3>Avisos ${nuevos ? `<span class="count" style="margin-left:6px;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--accent);color:#fff;vertical-align:2px">${nuevos} nuevo${nuevos > 1 ? 's' : ''}</span>` : ''}</h3><p>Ventas que se instalaron o cancelaron · lo más reciente arriba</p></div>
+        ${nuevos ? '<button class="btn sm" id="supSeen">Marcar como vistos</button>' : ''}</div>
+      ${eventos.length ? `<div style="display:grid;gap:8px">${eventos.slice(0, 30).map(v => { const nw = v.instEn > seen, ok = v.inst === 'COMPLETADO'; return `<div class="toggle-row" style="border-left:3px solid ${ok ? 'var(--good)' : 'var(--crit)'};${nw ? 'background:color-mix(in srgb, var(--accent) 10%, var(--panel-2))' : ''}"><span style="color:${ok ? 'var(--good)' : 'var(--crit)'}">${ic(ok ? 'checkc' : 'xc')}</span><span style="min-width:0"><b style="font-weight:600">${ok ? 'Instalada' : 'Cancelada'}</b> · <span class="mono">${esc(v.pedido || 'sin pedido')}</span><br><span class="note">${esc(v.producto || '')} · ${esc(v.ejecutivo || '')}${!ok && motivoDe(v) ? ' · ' + esc(motivoDe(v)) : ''} · ${fechaHora(v.instEn)}</span></span></div>`; }).join('')}</div>`
+        : '<p class="note">Todavía no hay cambios de estado este mes. Cuando una venta se instale o se cancele, aparece aquí.</p>'}
+    </div>`;
+    $('#supSeen')?.addEventListener('click', () => { supSetSeen(new Date().toISOString()); updateSupBell(); renderSupBody(); });
+    updateSupBell(); return;
+  }
   box.innerHTML = `
   <div class="kpis">
     <div class="kpi"><div class="eyebrow">RGU vendidos</div><div class="big" data-count="${prods}">0</div><div class="delta" style="color:var(--muted)">${fmt(list.length)} ventas este mes</div></div>
@@ -4733,37 +4764,23 @@ function renderSupBody() {
   ${(() => { if (!SB.data) { sbCargar().then(() => { if (currentView() === 'supervisor' && SUP.tab === 'resumen') renderSupBody(); }); return ''; } const F = sbFilas(); if (!F.rows.length) return ''; const hoy = isoOf(new Date()), xs = F.rows.map(r => ({ r, c: beCalc(r, hoy) })), rg = a => a.reduce((t, x) => t + (x.r[CI.rgu] || 1), 0), base = rg(xs) - rg(xs.filter(x => x.c === 'fuera' || x.c === 'fuera_nc')), pct = base ? rg(xs.filter(x => x.c === 'en_plazo')) / base : null, ll = xs.filter(x => x.c === 'pend_venc').length;
     return `<button class="card sb-mini" data-supgo="cobranza"><span class="eyebrow">Boletas pagadas en plazo</span><b style="color:${pct == null ? 'var(--muted)' : pct >= SUP_META_BOL ? 'var(--good)' : pct >= SUP_META_BOL - .1 ? 'var(--warn)' : 'var(--crit)'}">${pct == null ? '—' : Math.round(pct * 100) + '%'}</b><span class="note">Meta 100% de logro${ll ? ` · <b style="color:var(--serious)">${ll} clientes para cobrar ahora</b>` : ''} · ver boletas →</span></button>`; })()}
   <div class="grid-2">
-    <div class="card" id="supAvisos">
-      <div class="card-h"><div><h3>Avisos ${nuevos ? `<span class="count" style="margin-left:6px;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--accent);color:#fff;vertical-align:2px">${nuevos} nuevo${nuevos > 1 ? 's' : ''}</span>` : ''}</h3><p>Ventas que se instalaron o cancelaron · lo más reciente arriba</p></div>
-        ${nuevos ? '<button class="btn sm" id="supSeen">Marcar como vistos</button>' : ''}</div>
-      ${eventos.length ? `<div style="display:grid;gap:8px">${eventos.slice(0, 12).map(v => { const nw = v.instEn > seen, ok = v.inst === 'COMPLETADO'; return `<div class="toggle-row" style="border-left:3px solid ${ok ? 'var(--good)' : 'var(--crit)'};${nw ? 'background:color-mix(in srgb, var(--accent) 10%, var(--panel-2))' : ''}"><span style="color:${ok ? 'var(--good)' : 'var(--crit)'}">${ic(ok ? 'checkc' : 'xc')}</span><span style="min-width:0"><b style="font-weight:600">${ok ? 'Instalada' : 'Cancelada'}</b> · <span class="mono">${esc(v.pedido || 'sin pedido')}</span><br><span class="note">${esc(v.producto || '')} · ${esc(v.ejecutivo || '')}${!ok && motivoDe(v) ? ' · ' + esc(motivoDe(v)) : ''}</span></span><span class="w" style="text-align:right;white-space:nowrap">${nw ? '<span class="tag" style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--accent);color:#fff">NUEVO</span><br>' : ''}${hace(v.instEn)}</span></div>`; }).join('')}</div>`
-        : '<p class="note">Todavía no hay cambios de estado este mes. Cuando una venta se instale o se cancele, aparece aquí.</p>'}
-    </div>
-    <div class="card">
+    <button class="card sb-mini" data-supgo="avisos"><span class="eyebrow">Avisos</span><b style="color:${nuevos ? 'var(--accent)' : 'var(--fg)'}">${fmt(nuevos)}</b><span class="note">${nuevos ? `venta${nuevos === 1 ? '' : 's'} instalada${nuevos === 1 ? '' : 's'} o cancelada${nuevos === 1 ? '' : 's'} desde tu última visita` : 'Sin avisos nuevos'} · ver avisos →</span></button>
+    <button class="card sb-mini" data-supgo="vendedores"><span class="eyebrow">Tu equipo</span><b>${fmt(ejs.length)}</b><span class="note">vendedor${ejs.length === 1 ? '' : 'es'} con ventas este mes${ejs[0] ? ` · más RGU: <b style="color:var(--fg)">${esc(ejs[0][0])}</b> (${fmt(ejs[0][1].n)})` : ''} · ver vendedores →</span></button>
+  </div>
+  <div class="card">
       <div class="card-h"><div><h3>Canceladas por motivo</h3><p>${canc.length} ventas canceladas este mes</p></div></div>
       ${canc.length ? `<div class="hbars">${Object.entries(motC).sort((a, b) => b[1] - a[1]).map(([k, n], i) => `<div class="hbar"><span class="name">${esc(k)}</span><span class="track"><i style="width:${n / canc.length * 100}%;background:var(--crit);animation-delay:${i * 60}ms"></i></span><span class="v">${n}</span></div>`).join('')}</div>` : '<p class="note">Sin cancelaciones este mes.</p>'}
     </div>
-  </div>
-  <div class="card"><div class="card-h"><div><h3>Tu equipo</h3><p>RGU por vendedor · tu total de RGU es el 100% · cuestionarios hasta 5% y fuera de zona hasta 3% de lo instalado · toca uno para ver sus ventas</p></div></div>
-    ${vendTablaHTML(list, 'data-supej', instaladasMes().filter(v => nameKey(v.supervisor) && sameName(v.supervisor, ROLE.sup)))}</div>
 `;
   countUp(box);
   $('#supSeen')?.addEventListener('click', () => { supSetSeen(new Date().toISOString()); updateSupBell(); renderSupBody(); });
-  $$('tr[data-supej]', box).forEach(tr => tr.addEventListener('click', () => { SUP.ej = tr.dataset.supej; SUP.vf = 'todas'; SUP.page = 1; SUP.tab = 'ventas'; renderSupBody(); window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' }); }));
-  $$('[data-supgo]', box).forEach(b => b.addEventListener('click', () => { SUP.tab = b.dataset.supgo; renderSupBody(); window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' }); }));
-  $$('[data-supir]', box).forEach(b => b.addEventListener('click', () => { SUP.vf = b.dataset.supir; SUP.ej = ''; SUP.page = 1; SUP.tab = 'ventas'; renderSupBody(); window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' }); }));
+  $$('[data-supgo]', box).forEach(b => b.addEventListener('click', () => supIr(b.dataset.supgo)));
+  $$('[data-supir]', box).forEach(b => b.addEventListener('click', () => { SUP.vf = b.dataset.supir; SUP.ej = ''; SUP.page = 1; supIr('ventas'); }));
   updateSupBell();
 }
 function supArrastreLista() { const a = arrastreLista(); return a ? a.filter(v => nameKey(v.supervisor) && sameName(v.supervisor, ROLE.sup)) : null; }
 function supArrastreHTML() { const a = arrastreLista(); if (!a) { arrCargar().then(() => { if (currentView() === 'supervisor') renderSupBody(); }); return ''; } const mias = a.filter(v => nameKey(v.supervisor) && sameName(v.supervisor, ROLE.sup)); if (!mias.length) return ''; return `<div class="card"><div class="card-h"><div><h3>Tus ventas de arrastre · ${mias.length}</h3><p>Emitidas en meses anteriores y todavía sin completar · el equipo de backoffice las actualiza</p></div></div>
     <div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Ejecutivo</th><th>Agenda</th><th>Estado</th></tr></thead><tbody>${mias.slice(0, 15).map(v => `<tr style="cursor:default"><td class="mono">${esc(v.pedido) || 'Sin pedido'}<div class="sub">Emitida ${fmtFecha(v.fecha)}</div></td><td class="mono">${esc(v.rut)}<div class="sub">${esc(v.producto)}</div></td><td>${esc(v.ejecutivo) || '—'}</td><td class="num">${cuandoTxt(agendaDe(v))}</td><td>${badge(INST_EST[v.inst] || INST_EST[''])}</td></tr>`).join('')}</tbody></table></div>${mias.length > 15 ? `<p class="note" style="margin:10px 0 0">Y ${mias.length - 15} más.</p>` : ''}</div>`; }
-function supTabsRender(list) {
-  const bar = $('#supTabs'); if (!bar) return;
-  const arr = supArrastreLista(); if (!arr) arrCargar().then(() => { if (currentView() === 'supervisor') supTabsRender(supList()); });
-  const tabs = [['ventas', 'Ventas', list.length], ['resumen', 'Resumen', null], ['arrastre', 'Arrastre', arr ? arr.length : null], ['cobranza', 'Boletas', null]];
-  bar.innerHTML = tabs.map(([k, l, n]) => `<button role="tab" data-suptab="${k}" aria-selected="${SUP.tab === k}">${l}${n != null ? ` <span class="n">${fmt(n)}</span>` : ''}</button>`).join('');
-  $$('[data-suptab]', bar).forEach(b => b.addEventListener('click', () => { SUP.tab = b.dataset.suptab; renderSupBody(); }));
-}
 function renderSupTable(list) {
   const box = $('#supTable'); if (!box) return;
   const q = norm(SUP.q);
@@ -5168,7 +5185,7 @@ $$('.brand-switch button').forEach(b => b.addEventListener('click', () => {
 }));
 $('#searchBtn').addEventListener('click', () => { location.hash === '#ventas' ? $('#q')?.focus() : (location.hash = 'ventas', setTimeout(() => $('#q')?.focus(), 80)); });
 $('#bellBtn').addEventListener('click', () => {
-  if (isSup()) { const a = $('#supAvisos'); if (a) a.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' }); else location.hash = 'supervisor'; return; }
+  if (isSup()) { supIr('avisos'); return; }
   location.hash = 'alertas';
 });
 addEventListener('keydown', e => {
