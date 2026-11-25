@@ -235,6 +235,10 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 #logoutDlg .ico { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: #ff8f93; background: rgba(227, 38, 47, .16); }
 #logoutDlg .ico svg { width: 26px; height: 26px; }
 #logoutDlg h3 { font-size: 20px; }
+#logoutDlg.mfa-dlg { overflow-y: auto; align-items: start; padding-top: max(24px, env(safe-area-inset-top, 0px)); padding-bottom: 24px; }
+#logoutDlg.mfa-dlg .box { margin: auto; }
+.mfa-pasos { margin: 0; padding-left: 20px; display: grid; gap: 4px; color: var(--fg-2); font-size: 14px; }
+.mfa-qr { justify-self: center; background: #fff; padding: 10px; border-radius: 14px; width: 176px; height: 176px; }
 #logoutDlg p { margin: 0; color: var(--muted); font-size: 13.5px; }
 #logoutDlg .row { display: flex; gap: 10px; width: 100%; }
 #logoutDlg .row .btn { flex: 1; }
@@ -905,7 +909,7 @@ body.sup-mode .bell-dot { background: var(--accent); }
 <div id="toasts"></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js?sri=1" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
 <script>
 (() => {
 'use strict';
@@ -913,11 +917,13 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 // Librerías pesadas que se cargan solo cuando se necesitan: Excel (861 KB) al subir o descargar, 3D (589 KB) en el logo.
-const LIB_URL = { xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', three: 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js' };
+// Cada una con su huella (SRI): si el CDN entregara otro archivo, el navegador no lo ejecuta. "?sri=1" evita copias viejas guardadas sin CORS.
+const LIB_URL = { xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js?sri=1', three: 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js?sri=1' };
+const LIB_SRI = { xlsx: 'sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw', three: 'sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu' };
 const LIB_P = {};
 function cargarLib(n) {
   if ((n === 'xlsx' && window.XLSX) || (n === 'three' && window.THREE)) return Promise.resolve(true);
-  return LIB_P[n] ||= new Promise(ok => { const sc = document.createElement('script'); sc.src = LIB_URL[n]; sc.async = true; sc.onload = () => ok(true); sc.onerror = () => { delete LIB_P[n]; ok(false); }; document.head.appendChild(sc); });
+  return LIB_P[n] ||= new Promise(ok => { const sc = document.createElement('script'); sc.src = LIB_URL[n]; sc.integrity = LIB_SRI[n]; sc.crossOrigin = 'anonymous'; sc.async = true; sc.onload = () => ok(true); sc.onerror = () => { delete LIB_P[n]; ok(false); }; document.head.appendChild(sc); });
 }
 const xlsxListo = () => cargarLib('xlsx');
 // En teléfonos (o con ahorro de datos) el logo queda como imagen HD: el 3D pesa 589 KB y a ese tamaño se ve igual.
@@ -1591,26 +1597,53 @@ function renderAyudaAdmin() {
     ${STANDALONE && ROLE.rol === 'admin' && !ROLE.preview ? `<div class="dt-box"><h3 style="font-size:15px;margin-bottom:4px">Cambiar la contraseña de un usuario</h3>
       <p class="note" style="margin:0 0 12px">Si a alguien no le llega el correo de "¿Olvidaste tu contraseña?", asígnale aquí una clave temporal y díctasela. Después puede cambiarla él mismo.</p>
       <form id="ccForm" class="form-grid" novalidate style="align-items:end"><div class="field"><label for="ccMail">Correo del usuario</label><input class="input" type="email" id="ccMail" autocomplete="off" placeholder="nombre@novaventas.cl"></div>
-        <div class="field"><label for="ccPass">Clave temporal (mínimo 8)</label><input class="input mono" type="text" id="ccPass" autocomplete="off"></div>
+        <div class="field"><label for="ccPass">Clave temporal (mínimo 10, letras y números)</label><input class="input mono" type="text" id="ccPass" autocomplete="off"></div>
         <div class="field"><button class="btn sm" type="button" id="ccGen">Generar una</button></div>
         <div class="field"><button class="btn sm primary" type="submit" id="ccSave">Cambiar contraseña</button></div></form><div id="ccMsg" class="note" style="margin-top:8px"></div></div>` : ''}
+    ${STANDALONE && ROLE.rol === 'admin' && !ROLE.preview ? '<div class="dt-box" id="usrBox"></div>' : ''}
     ${datosPanelHTML()}`;
   $('#ayInstall').addEventListener('click', openInstall);
   $('#ayClave')?.addEventListener('click', askNewPassword);
   $('#bkXlsx')?.addEventListener('click', () => respaldo('xlsx'));
   $('#bkJson')?.addEventListener('click', () => respaldo('json'));
   bindDatos(box);
+  usrCargar();
   $('#ccGen')?.addEventListener('click', () => { const a = 'abcdefghjkmnpqrstuvwxyz', n = '23456789', r = s => s[crypto.getRandomValues(new Uint32Array(1))[0] % s.length]; $('#ccPass').value = 'Vp' + Array.from({ length: 4 }, () => r(a)).join('') + Array.from({ length: 4 }, () => r(n)).join(''); });
   $('#ccForm')?.addEventListener('submit', async e => {
     e.preventDefault();
     const mail = $('#ccMail').value.trim(), pass = $('#ccPass').value, msg = (t, ok) => { $('#ccMsg').innerHTML = `<span style="color:${ok ? 'var(--good)' : 'var(--crit)'}">${esc(t)}</span>`; };
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { msg('Escribe el correo del usuario.'); return; }
-    if (pass.length < 8) { msg('La clave debe tener al menos 8 caracteres.'); return; }
+    if (!claveFuerte(pass)) { msg('La clave debe tener al menos 10 caracteres, con letras y números.'); return; }
     $('#ccSave').disabled = true;
     try { await VP_STANDALONE.cambiarClaveDe(mail, pass); msg(`Listo: ${mail} ya puede entrar con la clave ${pass}. Pídele que la cambie después.`, true); }
     catch (er) { msg(er.message); }
     $('#ccSave').disabled = false;
   });
+}
+
+// Usuarios: rol, último ingreso y verificación en dos pasos. Si alguien pierde el teléfono, el admin se la quita y la activa de nuevo al entrar.
+async function usrCargar() {
+  const box = $('#usrBox'); if (!box) return;
+  const h = `<h3 style="font-size:15px;margin-bottom:4px">Usuarios y verificación en dos pasos</h3>`;
+  box.innerHTML = h + '<p class="note" style="margin:0">Cargando usuarios…</p>';
+  let list;
+  try { list = await sbRpc('admin_usuarios'); }
+  catch (e) { box.innerHTML = h + `<p class="note" style="margin:0">${/function|schema cache|PGRST202/i.test(e.message || e.code || '') ? 'Falta activar esta función en la base: ejecuta <b>supabase/schema.sql</b> en Supabase → SQL Editor.' : esc(e.message)}</p>`; return; }
+  const est = u => u.mfa ? '<b style="color:var(--good)">Activa</b>' : u.mfa_requerida ? '<b style="color:var(--crit)">Falta activarla</b>' : '<span class="sub">No exigida</span>';
+  const faltan = (list || []).filter(u => u.mfa_requerida && !u.mfa).length;
+  box.innerHTML = h + `<p class="note" style="margin:0 0 12px">Administración y backoffice entran con su contraseña y un código de 6 dígitos de una app de autenticación (Google o Microsoft Authenticator); la base de datos no les entrega nada sin ese código. ${faltan ? `<b style="color:var(--warn)">${faltan} usuario${faltan === 1 ? '' : 's'} la activará${faltan === 1 ? '' : 'n'} en su próximo ingreso.</b>` : ''}</p>
+    <div class="table-wrap"><table><thead><tr><th>Usuario</th><th>Rol</th><th>Último ingreso</th><th>Dos pasos</th><th></th></tr></thead><tbody>${(list || []).map(u => `<tr>
+      <td>${esc(u.nombre || '')}<div class="sub">${esc(u.correo || '')}</div></td><td>${esc(ROL_LABEL[u.rol] || (u.rol === 'pendiente' ? 'Sin acceso' : u.rol || ''))}</td>
+      <td class="num">${u.ultimo_ingreso ? fechaHora(u.ultimo_ingreso) : '<span class="sub">Nunca</span>'}</td><td>${est(u)}</td>
+      <td>${u.mfa ? `<button type="button" class="btn sm ghost" data-qmfa="${esc(u.correo)}">Quitar</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
+    <div id="usrMsg" class="note" style="margin-top:8px"></div>`;
+  $$('[data-qmfa]', box).forEach(b => b.addEventListener('click', async () => {
+    const c = b.dataset.qmfa;
+    if (!confirm(`¿Quitar la verificación en dos pasos a ${c}? La tendrá que activar de nuevo en su próximo ingreso.`)) return;
+    b.disabled = true;
+    try { const r = await sbRpc('admin_quitar_mfa', { correo_usuario: c }); await usrCargar(); if ($('#usrMsg')) $('#usrMsg').textContent = r; }
+    catch (e) { if ($('#usrMsg')) $('#usrMsg').textContent = e.message; b.disabled = false; }
+  }));
 }
 
 /* ---------- DÓNDE ESTÁN LAS VENTAS: estado de la base y respaldos automáticos (app propia) ---------- */
@@ -4970,7 +5003,7 @@ function lgError(msg) { $('#lgErr').innerHTML = msg ? `<div class="restricted">$
 function pedirRecuperacion(email0) {
   const d = document.createElement('div'); d.id = 'logoutDlg'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true');
   d.innerHTML = `<form class="box" id="rcvForm" novalidate style="text-align:left;justify-items:stretch"><h3 style="text-align:center">Recuperar contraseña</h3>
-    <p style="margin:0">Escribe tu correo y te enviaremos un enlace para crear una contraseña nueva.</p>
+    <p style="margin:0">Escribe tu correo y te enviaremos un enlace y un código para crear una contraseña nueva.</p>
     <div class="field"><label for="rcvMail">Correo</label><input class="input" type="email" id="rcvMail" autocomplete="email" value="${esc(email0 || '')}" placeholder="nombre@novaventas.cl"></div>
     <div id="rcvMsg"></div>
     <div class="row"><button type="button" class="btn ghost" id="rcvNo">Cerrar</button><button type="submit" class="btn primary" id="rcvSi">Enviar enlace</button></div>
@@ -4985,17 +5018,29 @@ function pedirRecuperacion(email0) {
     $('#rcvSi').disabled = true; $('#rcvSi').innerHTML = '<span class="spin" style="border-top-color:#fff"></span> Enviando…';
     try {
       await VP_STANDALONE.resetPassword(mail);
-      msg(`<div class="restricted" style="background:color-mix(in srgb,var(--good) 12%,transparent);border-color:color-mix(in srgb,var(--good) 40%,transparent);color:var(--fg)">${ic('checkc')}<span>Listo. Si <b>${esc(mail)}</b> tiene acceso al portal, te llegará un correo con el enlace. Ábrelo en este mismo equipo o en el navegador del teléfono.</span></div>`);
+      msg(`<div class="restricted" style="background:color-mix(in srgb,var(--good) 12%,transparent);border-color:color-mix(in srgb,var(--good) 40%,transparent);color:var(--fg)">${ic('checkc')}<span>Listo. Si <b>${esc(mail)}</b> tiene acceso al portal, te llegará un correo. Abre el enlace en este mismo equipo, o escribe aquí el código que trae.</span></div>
+        <div class="field" style="margin-top:10px"><label for="rcvCode">Código del correo</label><div style="display:flex;gap:8px"><input class="input mono" id="rcvCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456"><button type="button" class="btn primary" id="rcvCodeOk">Continuar</button></div></div><div id="rcvCodeErr"></div>`);
       $('#rcvSi').innerHTML = 'Enviado'; $('#lgUser').value = mail;
+      const usarCodigo = async () => {
+        const c = $('#rcvCode').value.replace(/\s/g, ''), e2 = t => { $('#rcvCodeErr').innerHTML = t ? `<div class="restricted" style="margin-top:8px">${ic('alertc')}<span>${esc(t)}</span></div>` : ''; };
+        if (!/^\d{6,10}$/.test(c)) { e2('Escribe el código de números que llegó en el correo.'); return; }
+        $('#rcvCodeOk').disabled = true; e2('');
+        try { await VP_STANDALONE.verificarCodigo(mail, c); d.remove(); askNewPassword({ recargar: true }); }
+        catch (er) { e2(er.message); $('#rcvCodeOk').disabled = false; }
+      };
+      $('#rcvCodeOk').addEventListener('click', usarCodigo); $('#rcvCode').addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); usarCodigo(); } });
+      setTimeout(() => $('#rcvCode')?.focus(), 50);
     } catch (err) { msg(`<div class="restricted">${ic('alertc')}<span>${esc(err.message)}</span></div>`); $('#rcvSi').disabled = false; $('#rcvSi').innerHTML = 'Enviar enlace'; }
   });
   setTimeout(() => (email0 ? $('#rcvSi') : $('#rcvMail')).focus(), 50);
 }
-function askNewPassword() {
+const claveFuerte = v => String(v || '').length >= 10 && /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(v) && /\d/.test(v);
+function askNewPassword(opt) {
   if ($('#npForm')) return;
+  const recargar = !!(opt && opt.recargar);
   const d = document.createElement('div'); d.id = 'logoutDlg'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true');
   d.innerHTML = `<form class="box" id="npForm" novalidate style="text-align:left;justify-items:stretch"><h3 style="text-align:center">${STANDALONE && VP_STANDALONE.enRecuperacion() ? 'Crea tu contraseña nueva' : 'Cambiar mi contraseña'}</h3>
-    <div class="field"><label for="npPass">Contraseña nueva (mínimo 8 caracteres)</label><input class="input" type="password" id="npPass" autocomplete="new-password"></div>
+    <div class="field"><label for="npPass">Contraseña nueva (mínimo 10 caracteres, con letras y números)</label><input class="input" type="password" id="npPass" autocomplete="new-password"></div>
     <div class="field"><label for="npPass2">Repite la contraseña</label><input class="input" type="password" id="npPass2" autocomplete="new-password"></div>
     <label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--fg-2);cursor:pointer"><input type="checkbox" id="npVer"> Mostrar contraseña</label>
     <div id="npErr"></div><div class="row"><button type="button" class="btn ghost" id="npNo">Cancelar</button><button class="btn primary" type="submit" id="npSave">Guardar contraseña</button></div></form>`;
@@ -5006,12 +5051,78 @@ function askNewPassword() {
   $('#npForm').addEventListener('submit', async e => {
     e.preventDefault();
     const v = $('#npPass').value, v2 = $('#npPass2').value, err = t => { $('#npErr').innerHTML = `<div class="restricted">${ic('alertc')}<span>${esc(t)}</span></div>`; };
-    if (v.length < 8) { err('Usa al menos 8 caracteres.'); return; }
+    if (!claveFuerte(v)) { err('Usa al menos 10 caracteres, con letras y números.'); return; }
     if (v !== v2) { err('Las dos contraseñas no coinciden.'); return; }
     $('#npSave').disabled = true;
-    try { await VP_STANDALONE.updatePassword(v); d.remove(); toast('Contraseña actualizada. Ya puedes entrar con ella.', 'checkc'); }
+    try { await VP_STANDALONE.updatePassword(v); d.remove(); toast('Contraseña actualizada. Ya puedes entrar con ella.', 'checkc'); if (recargar) { marcarActividad(true); setTimeout(() => location.reload(), 900); } }
     catch (er) { err(er.message); $('#npSave').disabled = false; }
   });
+}
+// Verificación en dos pasos: si el rol la exige y la sesión todavía no la tiene, se pide antes de abrir el portal.
+async function exigirMfa() {
+  if (!STANDALONE || !VP_STANDALONE.mfaRequerida || !(await VP_STANDALONE.mfaRequerida())) return true;
+  let nivel;
+  try { nivel = await VP_STANDALONE.mfaNivel(); } catch (e) { lgError(e.message); return false; }
+  if (nivel && nivel.currentLevel === 'aal2') return true;
+  let factor = null;
+  try { factor = await VP_STANDALONE.mfaFactor(); } catch (e) { /* se ofrece activarla */ }
+  return new Promise(res => mfaDialog(factor, res));
+}
+function mfaDialog(factor, listo) {
+  $('#logoutDlg')?.remove();
+  const d = document.createElement('div'); d.id = 'logoutDlg'; d.className = 'mfa-dlg'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'mfaTit');
+  document.body.appendChild(d);
+  let ins = null, err = '';
+  const telefono = window.matchMedia && matchMedia('(max-width: 900px)').matches;
+  const pintar = () => {
+    const listoCodigo = !!(factor || ins);
+    d.innerHTML = `<form class="box" id="mfaForm" novalidate style="text-align:left;justify-items:stretch">
+      <span class="ico" style="justify-self:center;color:var(--cyan);background:color-mix(in srgb,var(--cyan) 16%,transparent)">${ic('shield')}</span>
+      <h3 id="mfaTit" style="text-align:center">${factor ? 'Verificación en dos pasos' : 'Activa la verificación en dos pasos'}</h3>
+      ${factor ? '<p style="margin:0">Abre tu app de autenticación y escribe el código de 6 dígitos del portal.</p>'
+        : ins ? `<ol class="mfa-pasos"><li>Instala <b>Google Authenticator</b> o <b>Microsoft Authenticator</b> en tu teléfono.</li><li>${telefono ? 'Toca <b>Agregar en este teléfono</b>, o escanea el código desde otro equipo.' : 'En la app toca <b>+</b> y escanea este código.'}</li><li>Escribe el código de 6 dígitos que aparece.</li></ol>
+          <img class="mfa-qr" src="${esc(ins.qr)}" alt="Código QR para agregar el portal a la app de autenticación" width="176" height="176">
+          ${telefono ? `<a class="btn sm" href="${esc(ins.uri)}" style="justify-self:center">Agregar en este teléfono</a>` : ''}
+          <p class="note" style="margin:0">¿No puedes escanear? Escribe esta clave en la app: <b class="mono" style="user-select:all;word-break:break-all">${esc(ins.secreto)}</b></p>`
+        : '<p style="margin:0">Por seguridad, tu cuenta entra con tu contraseña y un código que cambia cada 30 segundos en tu teléfono. Se activa una sola vez.</p><p class="note" style="margin:0">Preparando…</p>'}
+      ${listoCodigo ? '<div class="field"><label for="mfaCode">Código de 6 dígitos</label><input class="input mono" id="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="font-size:20px;letter-spacing:6px;text-align:center"></div>' : ''}
+      <div id="mfaErr">${err ? `<div class="restricted">${ic('alertc')}<span>${esc(err)}</span></div>` : ''}</div>
+      <div class="row"><button type="button" class="btn ghost" id="mfaNo">Cerrar sesión</button>${listoCodigo ? '<button class="btn primary" type="submit" id="mfaSi">Verificar</button>' : ''}</div>
+      ${factor ? '<p class="note" style="margin:0">¿Perdiste o cambiaste el teléfono? Pide a un administrador que te quite la verificación (Ayuda → Usuarios) para activarla de nuevo.</p>' : ''}
+    </form>`;
+    $('#mfaNo').addEventListener('click', async () => { try { await VP_STANDALONE.signOut(); } catch (e) { /* sin conexión */ } d.remove(); listo(false); location.replace(location.pathname + location.search); });
+    const code = $('#mfaCode');
+    if (code) { setTimeout(() => code.focus(), 50); code.addEventListener('input', () => { code.value = code.value.replace(/\D/g, '').slice(0, 6); if (code.value.length === 6) $('#mfaForm').requestSubmit(); }); }
+    $('#mfaForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const c = code ? code.value : '';
+      if (!/^\d{6}$/.test(c)) { err = 'Escribe los 6 dígitos que muestra la app.'; $('#mfaErr').innerHTML = `<div class="restricted">${ic('alertc')}<span>${esc(err)}</span></div>`; return; }
+      $('#mfaSi').disabled = true; $('#mfaSi').innerHTML = '<span class="spin" style="border-top-color:#fff"></span> Verificando…';
+      try { await VP_STANDALONE.mfaVerificar(factor ? factor.id : ins.id, c); marcarActividad(true); d.remove(); listo(true); }
+      catch (er) { err = er.message; $('#mfaErr').innerHTML = `<div class="restricted">${ic('alertc')}<span>${esc(err)}</span></div>`; $('#mfaSi').disabled = false; $('#mfaSi').textContent = 'Verificar'; code.value = ''; code.focus(); }
+    });
+  };
+  pintar();
+  if (!factor) VP_STANDALONE.mfaInscribir().then(x => { ins = x; err = ''; pintar(); }).catch(e => { err = e.message; pintar(); });
+}
+// Cierre de sesión por inactividad: 30 minutos para administración y backoffice, 2 horas para el resto.
+const INACT_MIN = rol => ['admin', 'backoffice'].includes(rol) ? 30 : 120;
+const INACT_KEY = 'vp-actividad';
+let actUlt = 0;
+function marcarActividad(forzar) { const t = Date.now(); if (!forzar && t - actUlt < 15000) return; actUlt = t; try { localStorage.setItem(INACT_KEY, String(t)); } catch (e) { /* sin almacenamiento */ } }
+function inactivoHace() { let t = 0; try { t = +localStorage.getItem(INACT_KEY) || 0; } catch (e) { /* sin almacenamiento */ } return t ? Date.now() - t : 0; }
+const sesionVencida = rol => inactivoHace() > INACT_MIN(rol) * 60000;
+async function cerrarPorInactividad(rol) {
+  try { await VP_STANDALONE.signOut(); } catch (e) { /* sin conexión: la sesión local igual se borra */ }
+  try { localStorage.removeItem(INACT_KEY); sessionStorage.setItem('vp-inactivo', String(INACT_MIN(rol))); } catch (e) { /* sin almacenamiento */ }
+  location.replace(location.pathname + location.search);
+}
+if (STANDALONE) {
+  ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(t => addEventListener(t, () => { if (!$('#app').hidden) marcarActividad(); }, { passive: true, capture: true }));
+  const revisarInactividad = () => { if (ROLE.rol && !$('#app').hidden && sesionVencida(ROLE.rol)) cerrarPorInactividad(ROLE.rol); };
+  setInterval(revisarInactividad, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) revisarInactividad(); });
+  try { const m = +sessionStorage.getItem('vp-inactivo'); if (m) { sessionStorage.removeItem('vp-inactivo'); setTimeout(() => lgError(`Por seguridad cerramos tu sesión después de ${m >= 60 ? (m / 60) + (m === 60 ? ' hora' : ' horas') : m + ' minutos'} sin uso. Vuelve a ingresar.`), 300); } } catch (e) { /* sin almacenamiento */ }
 }
 $('#loginForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -5019,7 +5130,7 @@ $('#loginForm').addEventListener('submit', async e => {
     const b = $('#lgBtn'), email = $('#lgUser').value, pass = $('#lgPass').value;
     if (!email || !pass) { lgError('Escribe tu correo y tu contraseña.'); return; }
     b.disabled = true; b.innerHTML = '<span class="spin" style="border-top-color:#fff"></span> Verificando…'; lgError('');
-    try { await VP_STANDALONE.signIn(email, pass); $('#lgPass').value = ''; location.reload(); return; }
+    try { await VP_STANDALONE.signIn(email, pass); $('#lgPass').value = ''; marcarActividad(true); if (await exigirMfa()) { location.reload(); return; } }
     catch (err) { lgError(err.message); }
     b.disabled = false; b.innerHTML = `Ingresar ${ic('arrow')}`;
     return;
@@ -5073,7 +5184,14 @@ if (!window.VP_STANDALONE) cobInit();
 if (STANDALONE) {
   showLogin();
   // Con sesión guardada entra directo; los datos se piden recién cuando hay sesión.
-  VP_STANDALONE.session().then(async ses => { if (!ses) return; const perf = await VP_STANDALONE.perfil(); if (perf && perf.rol !== 'pendiente') { applyRole(perf); cobInit(); showApp(); if (perf.nombre) setUserName(perf.nombre); } }).catch(() => {});
+  VP_STANDALONE.session().then(async ses => {
+    if (!ses) return;
+    const perf = await VP_STANDALONE.perfil();
+    if (!perf || perf.rol === 'pendiente') return;
+    if (sesionVencida(perf.rol)) { cerrarPorInactividad(perf.rol); return; }
+    if (!(await exigirMfa())) return;
+    marcarActividad(true); applyRole(perf); cobInit(); showApp(); if (perf.nombre) setUserName(perf.nombre);
+  }).catch(() => {});
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 } else if (TITLES[location.hash.slice(1)]) showApp(); else showLogin();
 })();
