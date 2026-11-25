@@ -1519,6 +1519,7 @@ function alertas() {
   }
   // Ventas sin dueño
   if (EMI.loaded && !soloLectura()) add('warn', emiMes().filter(v => fdzLugar(v) && !v.fdz).length, 'Ventas del sur sin la marca fuera de zona', 'Toda venta de una comuna desde Rancagua a Punta Arenas debe quedar marcada fuera de zona. Las ventas nuevas se marcan solas; estas son anteriores. Al tocar el botón se marcan todas.', '#ingreso', 'Marcar todas', () => { EMI.lim = 'fdz'; EMI.page = 1; fdzMarcarTodas(); });
+  if (EMI.loaded && !soloLectura()) { const d = supDuplicados().reduce((t, g) => t + g.malos.length, 0); add('warn', d, 'Nombres de supervisor mal escritos', 'Hay ventas con el nombre del supervisor escrito distinto ("Monita Soto" en vez de "Camila Herrera"): no le aparecen a su supervisor. Unifícalos en Supervisores.', '#supervisores', 'Unificar'); }
   if (EMI.loaded) add('warn', emiMes().filter(sinDueno).length, 'Ventas por asignar (sin ejecutivo o supervisor)', 'No aparecen en ningún portal de supervisor hasta asignarlas. Asígnalas en Ingreso de ventas → Ventas por asignar.', '#ingreso', 'Asignar', () => { EMI.sup = ''; EMI.rev = ''; });
   // Límites del mes: cuestionarios y fuera de zona
   if (EMI.loaded && EMI.mes === isoOf(new Date()).slice(0, 7)) {
@@ -2392,7 +2393,7 @@ function emiBuildConfig(wb, ventas) {
 function emiCfg() {
   const base = EMI.cfg || { ejecutivos: [], supervisores: [], productos: [], comunas: [], bloques: EMI_DEF.bloques, estatus: EMI_DEF.estatus, estados: EMI_DEF.estados, regiones: EMI_DEF.regiones };
   const all = emiAll(), add = (a, b) => [...new Map([...a, ...b].filter(Boolean).map(v => [norm(v), v])).values()].sort((x, y) => x.localeCompare(y, 'es'));
-  const supU = (a, b) => [...new Map([...a, ...b].filter(Boolean).map(supFix).map(v => [nameKey(v) || norm(v), v])).values()].sort((x, y) => x.localeCompare(y, 'es'));
+  const supU = (a, b) => { const todos = [...a, ...b].filter(Boolean).map(supFix), mapa = supCanonMapa(todos); return [...new Map(todos.map(v => mapa[v] || v).map(v => [nameKey(v) || norm(v), v])).values()].sort((x, y) => x.localeCompare(y, 'es')); };
   return { ...base, ejecutivos: add(base.ejecutivos, all.map(v => v.ejecutivo)), supervisores: supU(base.supervisores, all.map(v => v.supervisor)), productos: add(base.productos, all.map(v => v.producto)), comunas: add(base.comunas, all.map(v => v.comuna)) };
 }
 const emiAll = () => COB.db ? pendSobre(EMI.list) : EMI.local;
@@ -4879,7 +4880,7 @@ function renderSupTable(list) {
 function renderSupPicker() {
   const box = $('#supPickBox'); if (!box) return;
   if (window.VP_STANDALONE && !ROLE.preview && isSup()) { box.hidden = true; return; }
-  const names = [...new Map([...emiCfg().supervisores, ...emiAll().map(v => supFix(v.supervisor))].filter(Boolean).map(n => [nameKey(n), n])).values()].sort((a, b) => a.localeCompare(b, 'es'));
+  const names = emiCfg().supervisores;
   box.hidden = false;
   box.innerHTML = `<label for="supPreview" class="eyebrow" style="display:block;margin-bottom:6px">Ver como supervisor</label><select class="input" id="supPreview" style="height:38px"><option value="">Vista completa</option>${names.map(n => `<option ${ROLE.preview && ROLE.sup === n ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
   $('#supPreview').addEventListener('change', e => setSupervisor(e.target.value, !!e.target.value));
