@@ -1250,6 +1250,7 @@ async function cobInit() {
   db.collection('maestro').onSnapshot(s => { clearTimeout(slowT); maeOnSnapshot(s); }, () => { MAE.loaded = true; renderCurrent(); });
   emiInit(); calInit(); if (currentView() === 'ingreso') { renderEmiForm(); renderEmiBody(); }
   try { COB.canWrite = user ? await user.can('data.write') : null; } catch (e) { COB.canWrite = null; }
+  try { COB.owner = user && user.isOwner ? !!(await user.isOwner()) : false; } catch (e) { COB.owner = false; }
   aplicarSoloLectura();
 }
 function cobRefresh() { if ($('#cobDash')) renderCobDash(); }
@@ -1524,6 +1525,7 @@ function alertas() {
   // Ventas sin dueño
   if (EMI.loaded && !soloLectura()) add('warn', emiMes().filter(v => fdzLugar(v) && !v.fdz).length, 'Ventas del sur sin la marca fuera de zona', 'Toda venta de una comuna desde Rancagua a Punta Arenas debe quedar marcada fuera de zona. Las ventas nuevas se marcan solas; estas son anteriores. Al tocar el botón se marcan todas.', '#ingreso', 'Marcar todas', () => { EMI.lim = 'fdz'; EMI.page = 1; fdzMarcarTodas(); });
   if (EMI.loaded && !soloLectura()) { const d = supDuplicados().reduce((t, g) => t + g.malos.length, 0); add('warn', d, 'Nombres de supervisor mal escritos', 'Hay ventas con el nombre del supervisor escrito distinto ("Monita Soto" en vez de "Camila Herrera"): no le aparecen a su supervisor. Unifícalos en Supervisores.', '#supervisores', 'Unificar'); }
+  if (EMI.loaded && esAdmin()) { const vac = emiMes().filter(filaVacia); add('warn', vac.length, 'Filas vacías importadas de la planilla', `Registros sin pedido, producto ni ejecutivo (por ejemplo, con solo "K" en el RUT) que vinieron del Excel de ${mesLabel(EMI.mes).toLowerCase()}. No son ventas. Al tocar el botón se eliminan (quedan en el historial de la base por 180 días).`, '#alertas', 'Eliminar', async () => { if (!confirm(`¿Eliminar ${vac.length} fila${vac.length === 1 ? '' : 's'} vacía${vac.length === 1 ? '' : 's'} de ${mesLabel(EMI.mes).toLowerCase()}?`)) return; const n = await emiEliminar(vac.map(v => v.id)); toast(`${n} fila${n === 1 ? '' : 's'} vacía${n === 1 ? '' : 's'} eliminada${n === 1 ? '' : 's'}`, 'checkc'); setTimeout(() => { if (currentView() === 'alertas') viewAlertas($('#view')); }, 600); }); }
   if (EMI.loaded) add('warn', emiMes().filter(sinDueno).length, 'Ventas por asignar (sin ejecutivo o supervisor)', 'No aparecen en ningún portal de supervisor hasta asignarlas. Asígnalas en Ingreso de ventas → Ventas por asignar.', '#ingreso', 'Asignar', () => { EMI.sup = ''; EMI.rev = ''; });
   // Límites del mes: cuestionarios y fuera de zona
   if (EMI.loaded && EMI.mes === isoOf(new Date()).slice(0, 7)) {
@@ -2337,7 +2339,8 @@ function emiParseSheet(wb, sheet) {
     const vecTxt = ['pedido', 'rut', 'agenda', 'comp', 'inst', 'estatus', 'estado', 'com'].map(k => str(g(r, k))).join(' | ');
     const conVec = /\bVEC\b/i.test(vecTxt);
     const pedidoRaw = str(g(r, 'pedido')).replace(/\(?\bVEC\b\)?/ig, '').trim(), rut = normRut(g(r, 'rut')), prod = str(g(r, 'prod'));
-    if (!/^1-\d{6,}$/.test(pedidoRaw) && !rut && !prod) return; // filas vacías o preparadas sin datos
+    const rutOk = String(rut || '').replace(/\D/g, '').length >= 6;
+    if (!/^1-\d{6,}$/.test(pedidoRaw) && !rutOk && !prod) return; // filas vacías, preparadas o con restos (ej. solo "K" en el RUT)
     const pedido = /^1-\d{6,}$/.test(pedidoRaw) ? pedidoRaw : '';
     const fecha = toISODate(g(r, 'fecha')) || '';
     let ag = parseAgenda(g(r, 'agenda')); const re = parseAgenda(g(r, 'reag'));
@@ -2582,7 +2585,20 @@ async function fdzMarcarTodas() {
   toast(`${ok} venta${ok === 1 ? '' : 's'} marcada${ok === 1 ? '' : 's'} como fuera de zona`, 'checkc');
   if (!COB.db) renderCurrent();
 }
-const sinDueno = v => !String(v.ejecutivo || '').trim() || !nameKey(v.supervisor);
+const esAdmin = () => !isSup() && !ROLE.preview && (STANDALONE ? ROLE.rol === 'admin' : !!COB.owner);
+// Filas importadas de la planilla sin pedido, producto, ejecutivo ni RGU: restos del Excel, no ventas.
+const filaVacia = v => v.origen === 'excel' && !v.pedido && !String(v.producto || '').trim() && !String(v.ejecutivo || '').trim() && !(Number(v.cantidad) > 0);
+async function emiEliminar(ids) {
+  if (!esAdmin() || !ids.length) return 0;
+  let n = 0;
+  for (const id of ids) {
+    try { if (COB.db) await COB.db.doc('emisiones/' + id).delete(); else EMI.local = EMI.local.filter(x => x.id !== id); n++; }
+    catch (e) { toast('No se pudo eliminar: ' + (e.message || e), 'alertc'); break; }
+  }
+  if (!COB.db) renderCurrent();
+  return n;
+}
+const sinDueno = v => !filaVacia(v) && (!String(v.ejecutivo || '').trim() || !nameKey(v.supervisor));
 function emiIssues(v) {
   const out = [];
   if (!v.pedido) out.push('Sin N° de pedido');
@@ -3048,7 +3064,7 @@ function openEmision(id, given) {
     ${v.origen === 'excel' ? `<p class="note" style="margin:0">Importada desde la planilla (hoja ${esc(v.hoja)}, fila ${v.fila}).</p>` : ''}
     ${histHTML(v0)}
     <div id="edErr"></div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" id="edSave">${ic('check')}Guardar cambios</button><button class="btn ghost" data-close>Cerrar</button></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" id="edSave">${ic('check')}Guardar cambios</button><button class="btn ghost" data-close>Cerrar</button>${esAdmin() ? `<button class="btn ghost" id="edDel" style="margin-left:auto;color:var(--crit)">${ic('xc')}Eliminar venta</button>` : ''}</div>
   </div>`);
   const setPath = (o, p, val) => { const ks = p.split('.'); let t = o; ks.slice(0, -1).forEach(k2 => { t = t[k2] ||= {}; }); t[ks[ks.length - 1]] = val; };
   $$('#edForm [data-ed]').forEach(inp => inp.addEventListener(inp.tagName === 'SELECT' || inp.type === 'date' ? 'change' : 'input', () => {
@@ -3069,6 +3085,10 @@ function openEmision(id, given) {
   $('#edReingVer')?.addEventListener('click', async e => {
     e.preventDefault(); const r = v0.reingresoDe && v0.reingresoDe.id ? v0.reingresoDe : v0.reingresadaComo; if (!r) return;
     const o = emiAll().find(x => x.id === r.id) || (ARR.data || []).find(x => x.id === r.id) || await emiExists(r.id); if (o) openEmision(o.id, o); else toast('No encontré esa venta.', 'alertc');
+  });
+  $('#edDel')?.addEventListener('click', async () => {
+    if (!confirm(`¿Eliminar la venta ${v.pedido || 'sin pedido'}${v.rut ? ' (' + v.rut + ')' : ''}? Solo hazlo si no es una venta real (fila vacía o duplicada). Queda en el historial de la base por 180 días.`)) return;
+    if (await emiEliminar([v.id])) { closeDrawer(); toast('Venta eliminada', 'checkc'); }
   });
   $('#edSave').addEventListener('click', async () => {
     if (v.rut) v.rut = normRut(v.rut);
