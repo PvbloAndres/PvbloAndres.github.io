@@ -2056,10 +2056,56 @@ function mesInstalada(v) {
 let INST_PEND = false;
 function refrescarLimites() { const c = currentView(); if (c === 'ingreso') renderEmiBody(); else if (c === 'dashboard') renderLimDash(); else if (c === 'supervisores') renderSpBody(); else if (c === 'supervisor') renderSupBody(); }
 // Ventas instaladas en el mes (incluye las de arrastre de meses anteriores que se instalaron este mes), sin remisiones.
-function instaladasMes(mes = EMI.mes) {
+// Todas las ventas instaladas en el mes, tal cual están guardadas (puede haber el mismo pedido repetido).
+function instaladasMesBruto(mes = EMI.mes) {
   if (!BOL.data && COB.db && !INST_PEND) { INST_PEND = true; bolCargar().then(() => { INST_PEND = false; refrescarLimites(); }); }
   const m = new Map(); [...(BOL.data || []), ...emiAll()].forEach(v => m.set(v.id, v));
   return [...m.values()].filter(v => v.inst === 'COMPLETADO' && !esRemision(v) && mesInstalada(v) === mes);
+}
+// Instaladas del mes contando cada pedido una sola vez (si la planilla lo traía repetido, vale la fila original).
+function instaladasMes(mes = EMI.mes) {
+  const porPed = new Map();
+  instaladasMesBruto(mes).forEach(v => { const k = v.pedido || v.id, o = porPed.get(k); if (!o || (/-dup\d+$/.test(o.id) && !/-dup\d+$/.test(v.id))) porPed.set(k, v); });
+  return [...porPed.values()];
+}
+// De dónde sale la fecha de instalación que se usa para el mes.
+function fuenteInstalada(v) {
+  if (v.instalado) return 'planilla';
+  const m = v.pedido && maeActive() ? maePedido(v.pedido) : null;
+  return m && m[MI.estado] === 'Completada' && m[MI.fest] ? 'maestro' : 'emision';
+}
+// Desglose para revisar los límites: totales contra el maestro, por mes de emisión, origen de la fecha, RGU altos y las ventas que cuentan.
+const LIMDET = { open: false };
+// Abrir la ficha desde el desglose y recordar si el desglose quedó abierto (la tarjeta se redibuja con cada cambio).
+document.addEventListener('click', e => { const tr = e.target.closest && e.target.closest('tr[data-limv]'); if (!tr) return; const v = [...(BOL.data || []), ...emiAll()].find(x => x.id === tr.dataset.limv); if (v) openEmision(v.id, v); });
+document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('lim-det')) LIMDET.open = e.target.open; }, true);
+function limitesDetalleHTML(inst, X) {
+  const rg = a => a.reduce((t, v) => t + (Number(v.cantidad) || 0), 0), marca = v => state.brand === 'todas' || v.marca === state.brand;
+  const bruto = instaladasMesBruto().filter(marca), repN = bruto.length - inst.length, repR = rg(bruto) - rg(inst);
+  const A = maeActive(), S = A ? maeStats(maeFilter(A.rows)) : null;
+  const porMes = {}; inst.forEach(v => { (porMes[v.mes || ''] ||= []).push(v); });
+  const FU = { planilla: 'Con fecha de instalación (planilla o portal)', maestro: 'Sin fecha: se usa la fecha del maestro', emision: 'Sin fecha de instalación: se usa el mes de emisión' };
+  const porFu = {}; inst.forEach(v => { (porFu[fuenteInstalada(v)] ||= []).push(v); });
+  const altos = inst.filter(v => (Number(v.cantidad) || 0) > 4).sort((a, b) => b.cantidad - a.cantidad);
+  const trozo = (v, re) => { const t = textoVenta(v).replace(/\s+/g, ' ').trim(), i = t.search(re); return i < 0 ? '' : (i > 30 ? '…' : '') + t.slice(Math.max(0, i - 30), i + 50) + (i + 50 < t.length ? '…' : ''); };
+  const fila = (v, extra) => `<tr data-limv="${esc(v.id)}" style="cursor:pointer"><td class="mono">${esc(v.pedido || 'sin pedido')}</td><td>${esc(mesLabel(v.mes || '') || '—')}</td><td class="num">${fmt(Number(v.cantidad) || 0)}</td><td style="white-space:normal;min-width:220px">${extra}</td></tr>`;
+  const tabla = (titulo, arr, extra) => arr.length ? `<div><b>${titulo} · ${fmt(arr.length)} venta${arr.length === 1 ? '' : 's'}, ${fmt(rg(arr))} RGU</b><div class="table-wrap" style="margin-top:6px;max-height:320px;overflow:auto"><table><thead><tr><th>Pedido</th><th>Emitida en</th><th>RGU</th><th>Por qué cuenta</th></tr></thead><tbody>${arr.map(v => fila(v, extra(v))).join('')}</tbody></table></div></div>` : '';
+  const cuest = X.cuest.arr, fdz = X.fdz.arr;
+  return `<details class="lim-det" style="margin-top:12px" ${LIMDET.open ? "open" : ""}><summary style="cursor:pointer;color:var(--cyan);font-weight:600">Revisar de dónde salen estos números</summary>
+    <div style="display:grid;gap:14px;margin-top:12px">
+      <div class="table-wrap"><table><tbody>
+        <tr><td>Instaladas en ${esc(mesLabel(EMI.mes).toLowerCase())} según el portal</td><td class="num"><b>${fmt(rg(inst))} RGU</b> · ${fmt(inst.length)} ventas</td></tr>
+        ${S ? `<tr><td>Instaladas según el maestro de VTR/Claro (${esc(A.hasta ? 'datos hasta el ' + fmtFecha(A.hasta) : 'último cargado')})</td><td class="num"><b>${fmt(S.inst)} RGU</b> · ${fmt(S.ci)} clientes</td></tr>` : ''}
+        ${repN ? `<tr><td style="color:var(--warn)">Pedidos repetidos en la planilla (no se cuentan dos veces)</td><td class="num">${fmt(repN)} ventas · ${fmt(repR)} RGU</td></tr>` : ''}
+        ${Object.entries(porMes).sort((a, b) => b[0].localeCompare(a[0])).map(([m, arr]) => `<tr><td>Emitidas en ${esc((mesLabel(m) || 'sin mes').toLowerCase())}${m && m !== EMI.mes ? ' (arrastre)' : ''}</td><td class="num">${fmt(rg(arr))} RGU · ${fmt(arr.length)} ventas</td></tr>`).join('')}
+        ${Object.entries(porFu).map(([k, arr]) => `<tr><td>${FU[k]}</td><td class="num">${fmt(rg(arr))} RGU · ${fmt(arr.length)} ventas</td></tr>`).join('')}
+      </tbody></table></div>
+      ${S && Math.abs(rg(inst) - S.inst) > Math.max(20, S.inst * .15) ? `<div class="restricted">${ic('alertc')}<span>El portal cuenta <b>${fmt(rg(inst))}</b> RGU instalados y el maestro <b>${fmt(S.inst)}</b>. Revisa abajo las ventas emitidas en meses anteriores y las que no tienen fecha de instalación: si la venta se instaló en otro mes, corrige su <b>fecha instalado</b> en la ficha.</span></div>` : ''}
+      ${tabla('RGU altos (más de 4 en una venta)', altos, v => esc(v.producto || ''))}
+      ${tabla('Cuentan como cuestionario', cuest, v => esc(trozo(v, /cuestionario/i) || 'marcada como cuestionario'))}
+      ${tabla('Cuentan como fuera de zona', fdz, v => esc([v.comuna, v.region].filter(Boolean).join(' · ') + (fdzLugar(v) ? '' : ' · ' + (trozo(v, TXT_FDZ) || 'marcada fuera de zona'))))}
+      <p class="note" style="margin:0">Toca una venta para abrir su ficha y corregirla (fecha instalado, RGU o comentarios).</p>
+    </div></details>`;
 }
 function limitesDe(inst, emit = []) {
   const meta = metaMensual(), rg = a => a.reduce((t, v) => t + (Number(v.cantidad) || 0), 0), totInst = rg(inst);
@@ -2076,7 +2122,7 @@ function limitesCard(list, filtrable) {
       <span class="lim-bar" aria-hidden="true"><i style="width:${Math.min(100, x.uso * 100)}%"></i></span>
       <span class="lim-s"><span><b>${fmt(x.rgu)} de ${fmt(x.tope)} RGU instalados</b> permitidos (${Math.round(x.pct * 100)}% de ${fmt(x.meta)})</span><span>${x.uso >= 1 ? `<b style="color:var(--crit)">Pasado por ${fmt(x.rgu - x.tope)} RGU</b>` : `Quedan <b>${fmt(x.tope - x.rgu)} RGU</b>`}</span></span>
       <span class="sub"><b style="color:var(--fg)">${fmt(x.ingresadas)} ingresada${x.ingresadas === 1 ? '' : 's'} este mes</b>${x.reing ? ` (${fmt(x.reing)} reingreso${x.reing === 1 ? '' : 's'}, no suma${x.reing === 1 ? '' : 'n'} al límite)` : ''}${x.sinMarca ? ` · <b style="color:var(--warn)">${fmt(x.sinMarca)} de comunas del sur todavía sin la marca (se marcan desde Alertas)</b>` : ''} · ${fmt(x.n)} instalada${x.n === 1 ? '' : 's'}${x.pend ? ` · <b style="color:var(--warn)">+${fmt(x.pend)} RGU por instalar</b> que se sumarían` : ''} · ${esc(x.d)}</span></${filtrable ? 'button' : 'div'}>`).join('')}</div>
-    <p class="note" style="margin:10px 0 0">Cuenta los RGU de las ventas <b>instaladas</b> en el mes (también las de arrastre de meses anteriores que se instalaron este mes), sin remisiones. "Por instalar" son las ingresadas que todavía no se instalan. Cuestionario: dice "cuestionario" en comentarios. Fuera de zona: comuna desde Rancagua al sur (O'Higgins a Magallanes), o marcada "fuera de zona" en comentarios. Toda venta de una comuna del sur queda marcada fuera de zona al guardarla.</p></div>`;
+    <p class="note" style="margin:10px 0 0">Cuenta los RGU de las ventas <b>instaladas</b> en el mes (también las de arrastre de meses anteriores que se instalaron este mes), sin remisiones. "Por instalar" son las ingresadas que todavía no se instalan. Cuestionario: dice "cuestionario" en comentarios. Fuera de zona: comuna desde Rancagua al sur (O'Higgins a Magallanes), o marcada "fuera de zona" en comentarios. Toda venta de una comuna del sur queda marcada fuera de zona al guardarla.</p>${limitesDetalleHTML(inst, X)}</div>`;
 }
 const DASH = { vista: (() => { try { return localStorage.getItem('vp-dash-vista') || 'rgu'; } catch (e) { return 'rgu'; } })() };
 // Mismos indicadores medidos en RGU o en clientes (pedidos) del maestro.
