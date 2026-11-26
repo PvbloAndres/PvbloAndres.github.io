@@ -1450,20 +1450,21 @@ function renderGesCanc(box, list) {
     </div>
   </div>
   <div class="card stack">
-    <div class="card-h" style="margin:0"><div><h3>Ventas canceladas</h3><p>Elige el motivo y escribe el detalle; se guarda al instante</p></div></div>
+    <div class="card-h" style="margin:0"><div><h3>Ventas canceladas</h3><p>Elige el motivo, escribe el detalle y el comentario del técnico; se guarda al instante</p></div></div>
     <div class="filters">
       <div class="input-icon">${ic('search')}<input class="input" id="gesQ" placeholder="Buscar pedido, RUT, producto o ejecutivo" value="${esc(GES.q)}" aria-label="Buscar"></div>
       <select class="input" id="gesSup" aria-label="Supervisor"><option value="">Supervisor (todos)</option>${gesSupOpts(list).map(s => `<option ${GES.sup === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
       ${GES.f || GES.sup || GES.q ? `<button class="btn sm ghost" id="gesClr">${ic('x')}Quitar filtros</button>` : ''}
     </div>
     ${rows.length ? `<div class="table-wrap"><table>
-      <thead><tr><th>Pedido</th><th>Cliente · producto</th><th>Ejecutivo · supervisor</th><th>Motivo</th><th>Detalle</th></tr></thead>
+      <thead><tr><th>Pedido</th><th>Cliente · producto</th><th>Ejecutivo · supervisor</th><th>Motivo</th><th>Detalle</th><th>Comentario del técnico</th></tr></thead>
       <tbody>${shown.map(v => { const m = motivoDe(v); return `<tr data-gid="${esc(v.id)}">
         <td class="mono">${esc(v.pedido) || '<span class="badge" style="--t:var(--serious)">Sin pedido</span>'}<div class="sub">Emitida ${fmtFecha(v.fecha).slice(0, 5)}</div></td>
         <td style="min-width:180px;max-width:250px;white-space:normal"><span class="mono">${esc(v.rut)}</span><div class="sub">${esc(v.producto)} · ${v.cantidad || 1} RGU</div></td>
         <td style="white-space:normal;min-width:150px">${esc(v.ejecutivo) || '—'}<div class="sub">${esc(v.supervisor) || 'Sin supervisor'}</div></td>
         <td><select class="input mini" data-gmot="${esc(v.id)}" aria-label="Motivo de cancelación" style="min-width:190px;${m ? '' : 'border-color:var(--serious)'}"><option value="">Elegir motivo…</option>${MOTIVOS.map(x => `<option ${m === x ? 'selected' : ''}>${x}</option>`).join('')}</select>${!v.motivoCat && m ? '<div class="sub">sugerido por el detalle</div>' : ''}</td>
         <td><input class="input mini" data-gdet="${esc(v.id)}" value="${esc(v.motivo)}" placeholder="Ej: cliente no estaba" aria-label="Detalle del motivo" style="min-width:200px"></td>
+        <td><input class="input mini" data-gtec="${esc(v.id)}" value="${esc(v.comTecnico || '')}" placeholder="Lo que escribió el técnico" aria-label="Comentario del técnico" style="min-width:220px"></td>
       </tr>`; }).join('')}</tbody></table></div>
       <div class="t-foot"><span>Mostrando ${fmt(shown.length)} de ${fmt(rows.length)} canceladas · toca el pedido para ver la ficha</span>${shown.length < rows.length ? '<button class="btn sm" id="gesMore">Cargar más</button>' : ''}</div>`
       : `<div class="empty">${ic('checkc')}<p>No hay canceladas con estos filtros.</p></div>`}
@@ -1478,6 +1479,7 @@ function renderGesCanc(box, list) {
   $$('tr[data-gid] td:first-child', box).forEach(td => { td.style.cursor = 'pointer'; td.addEventListener('click', () => openEmision(td.parentElement.dataset.gid)); });
   $$('[data-gmot]', box).forEach(s => s.addEventListener('change', () => gesGuardar(s.dataset.gmot, v => { v.motivoCat = s.value; }, s.value ? `Motivo guardado: ${s.value}` : 'Motivo quitado')));
   $$('[data-gdet]', box).forEach(i => i.addEventListener('change', () => gesGuardar(i.dataset.gdet, v => { v.motivo = i.value.trim(); if (!v.motivoCat) v.motivoCat = inferMotivo(v.motivo) || ''; }, 'Detalle guardado')));
+  $$('[data-gtec]', box).forEach(i => i.addEventListener('change', () => gesGuardar(i.dataset.gtec, v => { v.comTecnico = i.value.trim(); }, 'Comentario del técnico guardado')));
 }
 // Guarda un cambio en una venta (con historial) y refresca la sección.
 async function gesGuardar(id, patch, ok, given) {
@@ -1767,7 +1769,7 @@ function respaldoLibro(B) {
   const wb = XLSX.utils.book_new(), C = B.colecciones;
   const flat = v => ({ pedido: v.pedido, fecha: v.fecha, mes: v.mes, rut: v.rut, telefono: v.telefono ? fonoTxt(v.telefono) : '', cuenta_facturacion: v.cuentaFact || '', marca: v.marca, producto: v.producto, rgu: v.cantidad, comuna: v.comuna, region: v.region, fuera_de_zona: esFdz(v) ? 'SI' : '',
     ejecutivo: v.ejecutivo, supervisor: v.supervisor, estatus: v.estatus, ticket: v.ticket, estado: v.estado, oferta: v.oferta,
-    agenda: v.agenda ? [v.agenda.fecha, v.agenda.bloque].filter(Boolean).join(' ') : '', instalacion: v.inst, motivo: v.motivoCat, detalle_motivo: v.motivo,
+    agenda: v.agenda ? [v.agenda.fecha, v.agenda.bloque].filter(Boolean).join(' ') : '', instalacion: v.inst, motivo: v.motivoCat, detalle_motivo: v.motivo, comentario_tecnico: v.comTecnico || '',
     reagenda: v.reagenda ? [v.reagenda.fecha, v.reagenda.bloque].filter(Boolean).join(' ') : '', instalado: v.instalado, comentarios: v.comentarios,
     boleta_venc: v.boleta && v.boleta.venc, boleta_dia8: v.boleta && v.boleta.plazo, boleta_monto: v.boleta && v.boleta.monto, boleta_estado: v.boleta && v.boleta.estado,
     boleta_pagada: v.boleta && v.boleta.pagada, origen: v.origen, ingresada_por: ingresoDe(v), tipo_ingreso: tipoIng((v.ingreso && v.ingreso.tipo) || v.estatus).l, apelacion_plan: v.apelacion ? v.apelacion.estado : '', creado: v.creadoEn, editado: v.editadoEn, cambios: (v.hist || []).length });
@@ -2495,7 +2497,7 @@ function emiInit() {
   emiSubscribe();
 }
 // Campos que quedan en el historial de cada venta.
-const HIST_CAMPOS = [['inst', 'Instalación'], ['motivoCat', 'Motivo'], ['motivo', 'Detalle del motivo'], ['agenda', 'Agenda'], ['reagenda', 'Reagenda'], ['instalado', 'Fecha instalado'],
+const HIST_CAMPOS = [['inst', 'Instalación'], ['motivoCat', 'Motivo'], ['motivo', 'Detalle del motivo'], ['comTecnico', 'Comentario del técnico'], ['agenda', 'Agenda'], ['reagenda', 'Reagenda'], ['instalado', 'Fecha instalado'],
   ['boleta.estado', 'Estado de pago'], ['boleta.pagada', 'Fecha de pago'], ['boleta.venc', 'Vencimiento'], ['boleta.monto', 'Monto boleta'], ['boleta.nota', 'Nota boleta'],
   ['pedido', 'N° de pedido'], ['fecha', 'Fecha de emisión'], ['rut', 'RUT'], ['producto', 'Producto'], ['cantidad', 'RGU'], ['comuna', 'Comuna'], ['region', 'Región'],
   ['ejecutivo', 'Ejecutivo'], ['supervisor', 'Supervisor'], ['estatus', 'Estatus'], ['ticket', 'Ticket'], ['estado', 'Estado'], ['comentarios', 'Comentarios'],
@@ -2530,6 +2532,7 @@ async function emiWrite(v, opt = {}) {
   } else if (v.origen !== 'excel' && !v.hist) v.hist = [{ en: v.creadoEn || new Date().toISOString(), por: USER.name || 'Usuario del portal', c: [['Venta', '', v.origen === 'maestro' ? 'Agregada desde el maestro' : 'Ingresada en el portal']] }];
   if (prev) { if ((prev.inst || '') !== (v.inst || '')) { v.instEn = new Date().toISOString(); v.instAntes = prev.inst || ''; } else if (prev.instEn && !v.instEn) v.instEn = prev.instEn; }
   else if (v.inst && v.origen !== 'excel') v.instEn = new Date().toISOString();
+  if (prev && v.inst === 'REAGENDADO' && (prev.inst || '') === 'REAGENDADO' && v.reagenda && v.reagenda.fecha && v.reagenda.fecha !== ((prev.reagenda && prev.reagenda.fecha) || '')) v.instEn = new Date().toISOString();
   if (COB.db && prev) v = await emiSobreLaUltima(prev, v, entrada);
   if (COB.db) {
     try { await COB.db.doc('emisiones/' + v.id).set(v); }
@@ -3036,6 +3039,7 @@ function openEmision(id, given) {
       <div class="field"><label for="edInst">Estado de instalación</label><select class="input" id="edInst" data-ed="inst">${Object.entries(INST_EST).map(([k2, x]) => `<option value="${k2}" ${v.inst === k2 ? 'selected' : ''}>${x.l}</option>`).join('')}</select></div>
       <div class="field"><label for="edMotC">Motivo de cancelación</label><select class="input" id="edMotC" data-ed="motivoCat"><option value="">${inferMotivo(v.motivo) ? 'Sugerido: ' + inferMotivo(v.motivo) : 'Sin motivo'}</option>${MOTIVOS.map(x => `<option ${v.motivoCat === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
       <div class="field"><label for="edMot">Detalle</label><input class="input" id="edMot" data-ed="motivo" value="${esc(v.motivo)}" placeholder="Ej: cliente no estaba en el domicilio"></div>
+      <div class="field" style="grid-column:1/-1"><label for="edTec">Comentario del técnico</label><textarea class="input" id="edTec" data-ed="comTecnico" rows="2" style="height:auto;min-height:64px;padding:10px 12px;resize:vertical" placeholder="Lo que dejó escrito el técnico. Ej: cliente no permitió el ingreso; sin factibilidad en el poste">${esc(v.comTecnico || '')}</textarea><span class="hint">Sobre todo en las canceladas. El supervisor lo ve en Mis ventas y en el aviso.</span></div>
       <div class="field"><label for="edAgF">Fecha agendada</label><input class="input" type="date" id="edAgF" data-ed="agenda.fecha" value="${v.agenda.fecha}"></div>
       <div class="field"><label for="edAgB">Bloque</label><select class="input" id="edAgB" data-ed="agenda.bloque">${opt(cfg.bloques, v.agenda.bloque, 'Sin bloque')}</select></div>
       <div class="field"><label for="edReF">Fecha de reagenda</label><input class="input" type="date" id="edReF" data-ed="reagenda.fecha" value="${v.reagenda.fecha}"></div>
@@ -4419,14 +4423,18 @@ function ventasFiltradas(list, st) {
 }
 function ventasTabla(list, st, pre, o = {}) {
   const box = $(`#${pre}Table`); if (!box) return;
-  const rows = ventasFiltradas(list, st), shown = rows.slice(0, st.page * 25);
+  const rows = ventasFiltradas(list, st);
+  // Mientras se editan ventas en la lista, cada una conserva su lugar (no salta de página al cambiar de estado).
+  if (st.keep && st.keep.size && st.orden) { const pos = new Map(st.orden.map((id, i) => [id, i])); rows.sort((a, b) => (pos.has(a.id) ? pos.get(a.id) : 1e9) - (pos.has(b.id) ? pos.get(b.id) : 1e9)); }
+  st.orden = rows.map(v => v.id);
+  const shown = rows.slice(0, st.page * 25);
   box.innerHTML = rows.length ? `<div class="table-wrap"><table>
     <thead><tr><th>Pedido</th><th>Cliente · producto</th><th>Ejecutivo</th><th>Agenda</th><th>Instalación</th><th>Boleta</th></tr></thead>
     <tbody>${shown.map(v => { const d = planDif(v); return `<tr data-vrow="${esc(v.id)}" style="cursor:${o.abrir ? 'pointer' : 'default'}"><td class="mono">${esc(v.pedido) || '—'}<div class="sub">Emitida ${fmtFecha(v.fecha).slice(0, 5)} · por ${esc(ingresoCorto(v))}</div>${v.estatus && v.estatus !== 'VENTA NUEVA' ? `<div class="sub" style="color:${tipoIng(v.estatus).t}">${esc(tipoIng(v.estatus).l)}${v.ticket ? ' · ticket ' + esc(v.ticket) : ''}</div>` : ''}</td>
       <td style="min-width:180px;white-space:normal"><span class="mono">${esc(v.rut)}</span>${v.telefono ? `<div>${telLink(v.telefono) || `<span class="sub">${esc(v.telefono)}</span>`}</div>` : '<div class="sub">Sin teléfono</div>'}<div class="sub">${esc(v.producto)} · ${v.cantidad || 0} RGU · ${esc(v.comuna)}${v.cuentaFact ? ' · cta. ' + esc(v.cuentaFact) : ''}</div>${d ? `<div class="sub" style="color:var(--serious)">${ic('tri', 'i')} Plan modificado${d.vtr.length ? ': ' + esc(d.vtr.join(', ')) : ''}</div>` : ''}</td>
       <td>${esc(v.ejecutivo) || '—'}</td>
       <td class="num">${agendaDe(v) ? cuandoTxt(agendaDe(v)) : '<span class="badge" style="--t:var(--warn)">Sin agenda</span>'}<div class="sub">${esc((v.reagenda?.fecha ? 'Reagenda · ' + (v.reagenda.bloque || '') : v.agenda?.bloque) || '')}</div>${o.agenda && POR_INSTALAR.includes(v.inst || '') ? agCell(v) : ''}</td>
-      <td>${o.editar ? instCell(v, true, !!o.agenda) : `${badge(INST_EST[v.inst || ''] || INST_EST[''])}${v.inst === 'CANCELADO' && motivoDe(v) ? `<div class="sub">${esc(motivoDe(v))}</div>` : v.motivo ? `<div class="sub" style="white-space:normal;max-width:220px">${esc(v.motivo)}</div>` : ''}${v.instEn && supEvent(v) ? `<div class="sub">${hace(v.instEn)}</div>` : ''}`}</td>
+      <td>${o.editar ? instCell(v, true, !!o.agenda) : `${badge(INST_EST[v.inst || ''] || INST_EST[''])}${v.inst === 'CANCELADO' && motivoDe(v) ? `<div class="sub">${esc(motivoDe(v))}</div>` : v.motivo ? `<div class="sub" style="white-space:normal;max-width:220px">${esc(v.motivo)}</div>` : ''}${v.inst === 'CANCELADO' && v.comTecnico ? `<div class="sub" style="white-space:normal;max-width:240px">Técnico: ${esc(v.comTecnico)}</div>` : ''}${v.instEn && supEvent(v) ? `<div class="sub">${hace(v.instEn)}</div>` : ''}`}</td>
       <td>${v.boleta?.venc ? `${boletaBadge(v.boleta)}<div class="sub">Vence ${fmtFecha(v.boleta.venc).slice(0, 5)} · Día 8 ${fmtFecha(v.boleta.plazo || addDays(v.boleta.venc, 8)).slice(0, 5)}</div>` : v.boleta?.estado ? badge({ ...BE[beKey(v.boleta.estado)], l: BE[beKey(v.boleta.estado)].l }) : '<span class="sub">—</span>'}</td></tr>`; }).join('')}</tbody></table></div>
     <div class="t-foot"><span>Mostrando ${fmt(shown.length)} de ${fmt(rows.length)} ventas</span>${shown.length < rows.length ? `<button class="btn sm" id="${pre}More">Cargar más</button>` : ''}</div>`
     : `<div class="empty">${ic('search')}<p>${st.q ? `No encontré ventas con "${esc(st.q)}" en este mes.` : 'No hay ventas con este filtro.'}</p></div>`;
@@ -4655,12 +4663,20 @@ function supCobranza() {
       : '<p class="note">No hay boletas por cobrar en este momento. ¡Bien!</p>'}`;
 }
 function supList() { return emiMes().filter(v => nameKey(v.supervisor) && sameName(v.supervisor, ROLE.sup)); }
-const supEvent = v => v.instEn && ['COMPLETADO', 'CANCELADO'].includes(v.inst);
+// Estados que avisan al supervisor (campana, aviso del sistema y push con la app cerrada).
+const AVISO_EST = { COMPLETADO: { l: 'Instalada', t: 'var(--good)', i: 'checkc' }, CANCELADO: { l: 'Cancelada', t: 'var(--crit)', i: 'xc' }, REAGENDADO: { l: 'Reagendada', t: 'var(--info)', i: 'calendar' }, 'SIN AGENDA': { l: 'Sin agenda', t: 'var(--warn)', i: 'clock' } };
+// Una reagendada avisa recién cuando tiene fecha (así no llegan dos avisos al elegir estado y luego fecha).
+const avisable = v => !!AVISO_EST[v.inst] && !(v.inst === 'REAGENDADO' && !(v.reagenda && v.reagenda.fecha));
+const supEvent = v => v.instEn && avisable(v);
+const avisoDetalle = v => v.inst === 'CANCELADO' ? [motivoDe(v), v.comTecnico ? 'Técnico: ' + v.comTecnico : ''].filter(Boolean).join(' · ')
+  : v.inst === 'REAGENDADO' && v.reagenda && v.reagenda.fecha ? `Para el ${fmtFecha(v.reagenda.fecha).slice(0, 5)}${v.reagenda.bloque ? ' · ' + v.reagenda.bloque : ''}`
+  : v.inst === 'SIN AGENDA' && v.motivo ? v.motivo : '';
+const supK = v => (v.inst || '') + '|' + (v.inst === 'REAGENDADO' ? ((v.reagenda && v.reagenda.fecha) || '') : '');
 function supUnseen() { const s = supSeen(); return supList().filter(v => supEvent(v) && v.instEn > s); }
 function setSupervisor(name, preview) {
   ROLE.sup = name || ''; ROLE.preview = !!preview;
   SUP.filt = null; SUP.ej = ''; SUP.q = ''; SUP.keep = null;
-  SUP.prevInst = isSup() && EMI.loaded ? new Map(supList().map(v => [v.id, v.inst || ''])) : null;
+  SUP.prevInst = isSup() && EMI.loaded ? new Map(supList().map(v => [v.id, supK(v)])) : null;
   document.body.classList.toggle('sup-mode', isSup());
   if (isSup() && !supSeen()) supSetSeen(new Date().toISOString()); // primera visita: sin avisos acumulados
   if (!$('#app').hidden) { if (isSup()) location.hash = 'supervisor'; route(); }
@@ -4676,21 +4692,21 @@ function updateSupBell() {
 // Detecta en vivo las ventas que pasan a instalada o cancelada y avisa.
 function supOnData() {
   if (!isSup()) return;
-  const now = new Map(supList().map(v => [v.id, v.inst || '']));
+  const now = new Map(supList().map(v => [v.id, supK(v)]));
   if (SUP.prevInst) {
     supList().forEach(v => {
       const antes = SUP.prevInst.get(v.id);
-      if (!ROLE.preview && antes !== undefined && antes !== (v.inst || '') && ['COMPLETADO', 'CANCELADO'].includes(v.inst)) supNotify(v);
+      if (!ROLE.preview && antes !== undefined && antes !== supK(v) && avisable(v)) supNotify(v);
     });
   }
   SUP.prevInst = now;
   updateSupBell();
 }
 function supNotify(v) {
-  const ok = v.inst === 'COMPLETADO';
-  const title = ok ? 'Venta instalada' : 'Venta cancelada';
-  const body = `${v.pedido || 'Sin pedido'} · ${v.producto || ''} · ${v.ejecutivo || ''}${!ok && motivoDe(v) ? ' · ' + motivoDe(v) : ''}`;
-  toast(`${title}: ${body}`, ok ? 'checkc' : 'xc');
+  const a = AVISO_EST[v.inst]; if (!a) return;
+  const title = 'Venta ' + a.l.toLowerCase();
+  const body = [v.pedido || 'Sin pedido', v.producto, v.ejecutivo, avisoDetalle(v)].filter(Boolean).join(' · ');
+  toast(`${title}: ${body}`, a.i);
   try {
     if ('Notification' in window && Notification.permission === 'granted') {
       const opts = { body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'vp-' + v.id };
@@ -4709,7 +4725,7 @@ async function supAskNotify() {
   try {
     const p = await Notification.requestPermission();
     if (p === 'granted') supPush(false);
-    toast(p === 'granted' ? 'Listo: te avisaremos en este dispositivo cuando una venta se instale o se cancele' : 'Los avisos del teléfono quedaron desactivados. Igual los verás dentro de la app.', p === 'granted' ? 'bell' : 'alertc');
+    toast(p === 'granted' ? 'Listo: te avisaremos en este dispositivo cuando una venta se instale, se cancele, se reagende o quede sin agenda' : 'Los avisos del teléfono quedaron desactivados. Igual los verás dentro de la app.', p === 'granted' ? 'bell' : 'alertc');
   } catch (e) { toast('Este navegador no permite avisos. Los verás dentro de la app.', 'alertc'); }
   renderSupBody();
 }
@@ -4904,7 +4920,7 @@ function viewSupervisor(el) {
   el.innerHTML = `
   ${ROLE.preview ? `<div class="prev-banner">${ic('eye')}<div class="grow"><b>Vista previa:</b> así ve el portal ${esc(ROLE.sup)}: solo sus ventas.${supEditable() ? ' Tú puedes reagendar y cambiar el estado en <b>Mis ventas</b>; el supervisor lo ve solo para consulta.' : ' Sin ingreso ni edición.'}</div><button class="btn sm" id="supExit">Salir de la vista previa</button></div>` : ''}
   <div class="hello">
-    <div>${SUP.tab === 'resumen' ? `<h2>Hola${ROLE.sup ? `, <span>${esc(titleCase(ROLE.sup.split(/\s+/)[0]))}</span>` : ''}</h2>` : `<h2>${esc(supSec().n)}</h2>`}<p>${{ resumen: 'Tu mes de un vistazo', ventas: 'Busca y filtra tus ventas', cobranza: 'Boletas pagadas en plazo y clientes para llamar', vendedores: 'Cómo va cada vendedor de tu equipo', arrastre: 'Ventas de meses anteriores que siguen pendientes', avisos: 'Ventas que se instalaron o cancelaron' }[SUP.tab] || ''}${ROLE.sup ? ' · ' + esc(ROLE.sup) : ''} · ${supEditable() && SUP.tab === 'ventas' ? 'vista previa con edición' : 'solo lectura'}</p></div>
+    <div>${SUP.tab === 'resumen' ? `<h2>Hola${ROLE.sup ? `, <span>${esc(titleCase(ROLE.sup.split(/\s+/)[0]))}</span>` : ''}</h2>` : `<h2>${esc(supSec().n)}</h2>`}<p>${{ resumen: 'Tu mes de un vistazo', ventas: 'Busca y filtra tus ventas', cobranza: 'Boletas pagadas en plazo y clientes para llamar', vendedores: 'Cómo va cada vendedor de tu equipo', arrastre: 'Ventas de meses anteriores que siguen pendientes', avisos: 'Ventas instaladas, canceladas, reagendadas o sin agenda' }[SUP.tab] || ''}${ROLE.sup ? ' · ' + esc(ROLE.sup) : ''} · ${supEditable() && SUP.tab === 'ventas' ? 'vista previa con edición' : 'solo lectura'}</p></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <select class="input" id="supMes" aria-label="Mes" style="height:38px;width:auto">${meses.map(m => `<option value="${m}" ${m === EMI.mes ? 'selected' : ''}>${mesLabel(m)}</option>`).join('')}</select>
       ${notifOk ? `<button class="btn sm primary" id="supNotif">${ic('bell')}Activar avisos en este dispositivo</button>` : ''}
@@ -4951,10 +4967,10 @@ function renderSupBody() {
   }
   if (SUP.tab === 'avisos') {
     box.innerHTML = `<div class="card" id="supAvisos">
-      <div class="card-h"><div><h3>Avisos ${nuevos ? `<span class="count" style="margin-left:6px;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--accent);color:#fff;vertical-align:2px">${nuevos} nuevo${nuevos > 1 ? 's' : ''}</span>` : ''}</h3><p>Ventas que se instalaron o cancelaron · lo más reciente arriba</p></div>
+      <div class="card-h"><div><h3>Avisos ${nuevos ? `<span class="count" style="margin-left:6px;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--accent);color:#fff;vertical-align:2px">${nuevos} nuevo${nuevos > 1 ? 's' : ''}</span>` : ''}</h3><p>Ventas instaladas, canceladas, reagendadas o sin agenda · lo más reciente arriba</p></div>
         ${nuevos ? '<button class="btn sm" id="supSeen">Marcar como vistos</button>' : ''}</div>
-      ${eventos.length ? `<div style="display:grid;gap:8px">${eventos.slice(0, 30).map(v => { const nw = v.instEn > seen, ok = v.inst === 'COMPLETADO'; return `<div class="toggle-row" style="border-left:3px solid ${ok ? 'var(--good)' : 'var(--crit)'};${nw ? 'background:color-mix(in srgb, var(--accent) 10%, var(--panel-2))' : ''}"><span style="color:${ok ? 'var(--good)' : 'var(--crit)'}">${ic(ok ? 'checkc' : 'xc')}</span><span style="min-width:0"><b style="font-weight:600">${ok ? 'Instalada' : 'Cancelada'}</b> · <span class="mono">${esc(v.pedido || 'sin pedido')}</span><br><span class="note">${esc(v.producto || '')} · ${esc(v.ejecutivo || '')}${!ok && motivoDe(v) ? ' · ' + esc(motivoDe(v)) : ''} · ${fechaHora(v.instEn)}</span></span></div>`; }).join('')}</div>`
-        : '<p class="note">Todavía no hay cambios de estado este mes. Cuando una venta se instale o se cancele, aparece aquí.</p>'}
+      ${eventos.length ? `<div style="display:grid;gap:8px">${eventos.slice(0, 30).map(v => { const nw = v.instEn > seen, a = AVISO_EST[v.inst]; return `<div class="toggle-row" style="border-left:3px solid ${a.t};${nw ? 'background:color-mix(in srgb, var(--accent) 10%, var(--panel-2))' : ''}"><span style="color:${a.t}">${ic(a.i)}</span><span style="min-width:0"><b style="font-weight:600">${a.l}</b> · <span class="mono">${esc(v.pedido || 'sin pedido')}</span><br><span class="note">${esc(v.producto || '')} · ${esc(v.ejecutivo || '')}${avisoDetalle(v) ? ' · ' + esc(avisoDetalle(v)) : ''} · ${fechaHora(v.instEn)}</span></span></div>`; }).join('')}</div>`
+        : '<p class="note">Todavía no hay cambios de estado este mes. Cuando una venta se instale, se cancele, se reagende o quede sin agenda, aparece aquí.</p>'}
     </div>`;
     $('#supSeen')?.addEventListener('click', () => { supSetSeen(new Date().toISOString()); updateSupBell(); renderSupBody(); });
     updateSupBell(); return;
@@ -4998,7 +5014,7 @@ function renderSupTable(list) {
       <td style="min-width:180px;white-space:normal"><span class="mono">${esc(v.rut)}</span><div class="sub">${esc(v.producto)} · ${esc(v.comuna)}</div></td>
       <td>${esc(v.ejecutivo) || '—'}</td>
       <td class="num">${v.reagenda?.fecha ? 'Reag. ' + fmtFecha(v.reagenda.fecha).slice(0, 5) : v.agenda?.fecha ? fmtFecha(v.agenda.fecha).slice(0, 5) : '—'}<div class="sub">${esc((v.reagenda?.fecha ? v.reagenda.bloque : v.agenda?.bloque) || '')}</div></td>
-      <td>${badge(INST_EST[v.inst || ''] || INST_EST[''])}${v.inst === 'CANCELADO' && motivoDe(v) ? `<div class="sub">${esc(motivoDe(v))}</div>` : v.motivo ? `<div class="sub" style="white-space:normal;max-width:220px">${esc(v.motivo)}</div>` : ''}${v.instEn && supEvent(v) ? `<div class="sub">${hace(v.instEn)}</div>` : ''}</td>
+      <td>${badge(INST_EST[v.inst || ''] || INST_EST[''])}${v.inst === 'CANCELADO' && motivoDe(v) ? `<div class="sub">${esc(motivoDe(v))}</div>` : v.motivo ? `<div class="sub" style="white-space:normal;max-width:220px">${esc(v.motivo)}</div>` : ''}${v.inst === 'CANCELADO' && v.comTecnico ? `<div class="sub" style="white-space:normal;max-width:240px">Técnico: ${esc(v.comTecnico)}</div>` : ''}${v.instEn && supEvent(v) ? `<div class="sub">${hace(v.instEn)}</div>` : ''}</td>
       <td>${v.boleta?.estado ? badge({ ...BE[beKey(v.boleta.estado)], l: BE[beKey(v.boleta.estado)].l }) : '<span class="sub">—</span>'}</td></tr>`).join('')}</tbody></table></div>
     <div class="t-foot"><span>Mostrando ${fmt(shown.length)} de ${fmt(rows.length)} ventas</span>${shown.length < rows.length ? '<button class="btn sm" id="supMore">Cargar más</button>' : ''}</div>`
     : `<div class="empty">${ic('search')}<p>No hay ventas con estos filtros.</p></div>`;
@@ -5023,9 +5039,9 @@ function instCell(v, conMotivo = true, sinReag = false) {
   const t = (INST_EST[cur] || INST_EST['']).t;
   let extra = '';
   if (cur === 'REAGENDADO' && !sinReag) extra = `<div class="two"><input class="input mini" type="date" data-stf="reagenda.fecha" value="${v.reagenda?.fecha || ''}" aria-label="Fecha de reagenda"><select class="input mini" data-stf="reagenda.bloque" aria-label="Bloque de reagenda"><option value="">Bloque</option>${cfg.bloques.map(b => `<option ${v.reagenda?.bloque === b ? 'selected' : ''}>${esc(b)}</option>`).join('')}</select></div>`;
-  else if (cur === 'CANCELADO' && conMotivo) { const mc = motivoDe(v); extra = `<select class="input mini" data-stf="motivoCat" aria-label="Motivo de cancelación" ${mc ? '' : 'style="border-color:var(--serious)"'}><option value="">Elegir motivo…</option>${MOTIVOS.map(x => `<option ${mc === x ? 'selected' : ''}>${x}</option>`).join('')}</select>`; }
+  else if (cur === 'CANCELADO' && conMotivo) { const mc = motivoDe(v); extra = `<select class="input mini" data-stf="motivoCat" aria-label="Motivo de cancelación" ${mc ? '' : 'style="border-color:var(--serious)"'}><option value="">Elegir motivo…</option>${MOTIVOS.map(x => `<option ${mc === x ? 'selected' : ''}>${x}</option>`).join('')}</select><input class="input mini" data-stf="comTecnico" value="${esc(v.comTecnico || '')}" placeholder="Comentario del técnico" aria-label="Comentario del técnico">`; }
   else if (v.motivo) extra = `<div class="sub" style="white-space:normal;max-width:220px">${esc(v.motivo)}</div>`;
-  return `<div class="st-cell" data-stid="${esc(v.id)}"><select class="st-sel" style="--t:${t}" data-st aria-label="Estado de instalación">${opts.map(([val, lab]) => `<option value="${esc(val)}" ${cur === val ? 'selected' : ''}>${esc(lab)}</option>`).join('')}</select>${extra}</div>`;
+  return `<div class="st-cell" data-stid="${esc(v.id)}" data-cm="${conMotivo ? 1 : 0}" data-sr="${sinReag ? 1 : 0}"><select class="st-sel" style="--t:${t}" data-st aria-label="Estado de instalación">${opts.map(([val, lab]) => `<option value="${esc(val)}" ${cur === val ? 'selected' : ''}>${esc(lab)}</option>`).join('')}</select>${extra}</div>`;
 }
 async function celdaGuardar(cell, patchFn, onSaved) {
   const v0 = emiAll().find(x => x.id === cell.dataset.stid) || (ARR.data || []).find(x => x.id === cell.dataset.stid); if (!v0) return;
@@ -5038,6 +5054,7 @@ async function celdaGuardar(cell, patchFn, onSaved) {
     const g = await emiWrite(v); arrActualizar(g || v);
     cell.classList.remove('saving'); cell.classList.add('saved'); setTimeout(() => cell.classList.remove('saved'), 900);
     if (onSaved) onSaved(v);
+    return g || v;
   } catch (e) {
     cell.classList.remove('saving');
     toast(e && e.code === 'invalid_argument' ? 'Tu acceso es de solo lectura: no puedes cambiar estados.' : 'No se pudo guardar el cambio. Intenta de nuevo.', 'alertc');
@@ -5068,6 +5085,11 @@ function bindInstCells(root, onSaved) {
         v.inst = val;
         if (val === 'COMPLETADO' && !v.instalado) v.instalado = v.reagenda.fecha || v.agenda?.fecha || isoOf(new Date());
         if (val === 'CANCELADO' && !v.motivoCat) v.motivoCat = inferMotivo(v.motivo) || '';
+      }).then(g => {
+        // Muestra al tiro los campos del nuevo estado (motivo y comentario del técnico, fecha de reagenda) sin esperar a la base.
+        if (!g || !cell.isConnected) return;
+        const tmp = document.createElement('div'); tmp.innerHTML = instCell(g, cell.dataset.cm !== '0', cell.dataset.sr === '1');
+        const nc = tmp.firstElementChild, td = cell.parentElement; cell.replaceWith(nc); bindInstCells(td, onSaved);
       });
     });
     $$('[data-stf]', cell).forEach(inp => inp.addEventListener('change', () => save(v => {
@@ -5217,7 +5239,7 @@ if (STANDALONE) {
 const ROL_LABEL = { admin: 'Administrador', backoffice: 'Backoffice', lector: 'Solo lectura', supervisor: 'Supervisor' };
 // Solo lectura: rol lector en la app propia, o sin permiso de escritura en claude.ai. La base igual lo bloquea; esto evita mostrar controles que fallarían.
 const soloLectura = () => !isSup() && ((STANDALONE && ROLE.rol === 'lector') || COB.canWrite === false);
-const EDIT_CTRL = '.st-cell select, .st-cell input, [data-gsel], [data-gnota], [data-gtk], [data-gmot], [data-gdet], [data-motsel], #edForm [data-ed], #rcCam, #rcEst, #rcMot, #rcObs, #rcZona';
+const EDIT_CTRL = '.st-cell select, .st-cell input, [data-gsel], [data-gnota], [data-gtk], [data-gmot], [data-gdet], [data-gtec], [data-motsel], #edForm [data-ed], #rcCam, #rcEst, #rcMot, #rcObs, #rcZona';
 function aplicarSoloLectura(root = document) {
   const ro = soloLectura();
   document.body.classList.toggle('solo-lectura', ro);
