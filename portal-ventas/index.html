@@ -195,7 +195,9 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   padding-left: max(14px, env(safe-area-inset-left, 0px));
   gap: 18px;
   z-index: 40;
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) transparent;
 }
+.sidebar > * { flex-shrink: 0; } /* en pantallas bajas el menú se desplaza en vez de cortarse */
 .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 6px; }
 .brand-row img { width: 64px; height: auto; }
 .brand-tag { white-space: nowrap; font-size: 11px; font-weight: 600; color: var(--cyan); background: rgba(34, 195, 230, .12); border: 1px solid rgba(34, 195, 230, .3); border-radius: 999px; padding: 3px 10px; }
@@ -422,6 +424,9 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .st-cell .two { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .st-cell.saved .st-sel { box-shadow: 0 0 0 3px rgba(34, 197, 94, .45); }
 .st-cell.saving .st-sel { opacity: .6; }
+.ag-cell { margin-top: 8px; min-width: 150px; gap: 4px; }
+.ag-cell.saved .input { box-shadow: 0 0 0 3px rgba(34, 197, 94, .45); }
+.ag-cell.saving .input { opacity: .6; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); background: var(--panel-2); padding: 11px 14px; white-space: nowrap; }
 td { padding: 11px 14px; border-top: 1px solid var(--line); white-space: nowrap; }
@@ -1600,7 +1605,7 @@ function viewAyuda(el) {
   <div class="grid-2" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))">
     ${sec('Rutina diaria', ['<b>Mañana:</b> subir el maestro VTR/Claro del día (Dashboard → Actualizar maestro).', '<b>Durante el día:</b> ingresar cada venta en <b>Ingreso de ventas</b> y actualizar su estado (COMPLETADO, REAGENDADO…) directo en la tabla.', '<b>12:00, 16:00, 19:00 y 21:00:</b> enviar el corte desde <b>Reportes WhatsApp</b>.', '<b>Antes de cerrar:</b> revisar <b>Alertas</b> y <b>Seguimiento</b> para dejar la planilla al día con VTR.'])}
     ${sec('Archivos que se suben', ['<b>Maestro VTR/Claro</b> (diario): hoja con NUM_PEDIDO y estado_pedido. Alimenta Dashboard, Ventas y Seguimiento.', '<b>Planilla de emisiones</b> (solo para migrar meses anteriores): Ingreso de ventas → Importar planilla, una hoja por mes.', '<b>Reporte de 1° boleta</b> (mensual): Calidad de boletas → Subir reporte. Luego, "Pasar estados a la planilla".', 'Cualquiera de los tres se reconoce solo, aunque se suba en otra sección.'])}
-    ${sec('Secciones', ['<b>Dashboard:</b> brutas, instaladas, canceladas y pendientes del maestro, metas por plaza y calidad.', '<b>Ingreso de ventas:</b> reemplaza la planilla; cada venta queda registrada con quién la ingresó y su tipo (venta normal, error TSQ, error NAP o reingreso), y tiene su ficha con instalación, reagenda, boleta e historial de cambios.', '<b>Supervisores:</b> una tarjeta por supervisor con sus ventas, instaladas, por instalar, sin agenda y canceladas; al tocarla se buscan y actualizan sus ventas.', '<b>Plan modificado:</b> si el plan o los RGU que quedaron en VTR/Claro no son los vendidos, la venta aparece en Revisiones y Alertas para apelar.', '<b>Seguimiento:</b> cruza la planilla con el maestro y propone las correcciones.', '<b>VEC, TSQ y canceladas:</b> estado de cada VEC (por pedir, pedida, aprobada, rechazada), tickets de error TSQ/NAP y motivo de cada cancelación.', '<b>Ventas:</b> los pedidos del maestro con su estado en VTR/Claro.', '<b>Calidad de boletas:</b> pagadas en plazo, cobranza del día, reclamos y calidad por supervisor y ejecutivo.', '<b>Reportes WhatsApp:</b> cortes con VIÑA // RM // OTROS listos para enviar.', '<b>Roles:</b> el <b>backoffice</b> ve y actualiza las ventas de todos los supervisores (en Ingreso de ventas, panel "Por supervisor"); cada <b>supervisor</b> ve solo "Mis ventas", sin editar; <b>solo lectura</b> mira todo sin cambiar nada.'])}
+    ${sec('Secciones', ['<b>Dashboard:</b> brutas, instaladas, canceladas y pendientes del maestro, metas por plaza y calidad.', '<b>Ingreso de ventas:</b> reemplaza la planilla; cada venta queda registrada con quién la ingresó y su tipo (venta normal, error TSQ, error NAP o reingreso), y tiene su ficha con instalación, reagenda, boleta e historial de cambios.', '<b>Supervisores:</b> una tarjeta por supervisor con sus ventas, instaladas, por instalar, sin agenda y canceladas; al tocarla se buscan y actualizan sus ventas.', '<b>Plan modificado:</b> si el plan o los RGU que quedaron en VTR/Claro no son los vendidos, la venta aparece en Revisiones y Alertas para apelar.', '<b>Seguimiento:</b> cruza la planilla con el maestro y propone las correcciones.', '<b>VEC, TSQ y canceladas:</b> estado de cada VEC (por pedir, pedida, aprobada, rechazada), tickets de error TSQ/NAP y motivo de cada cancelación.', '<b>Ventas:</b> los pedidos del maestro con su estado en VTR/Claro.', '<b>Calidad de boletas:</b> pagadas en plazo, cobranza del día, reclamos y calidad por supervisor y ejecutivo.', '<b>Reportes WhatsApp:</b> cortes con VIÑA // RM // OTROS listos para enviar.', '<b>Roles:</b> el <b>backoffice</b> ve y actualiza las ventas de todos los supervisores (en Ingreso de ventas, panel "Por supervisor"); cada <b>supervisor</b> ve solo "Mis ventas", sin editar (el backoffice, con <b>Ver como supervisor</b>, puede reagendar y cambiar estados ahí mismo); <b>solo lectura</b> mira todo sin cambiar nada.'])}
     ${sec('Cómo se calcula', ['<b>RGU</b> = productos de la venta (Fibra 800 + TV = 2 RGU).', '<b>Calidad:</b> RGU pagados en plazo ÷ (total de RGU − pagados fuera de plazo). Meta NovaVentas: 100% (VTR exige mínimo 90%). Pagar hasta el día 8 (vencimiento + 8) es en plazo.', '<b>Reporte diario:</b> RGU emitidos hoy, sin remisiones. <b>Mensual:</b> sin remisiones ni ventas con error TSQ/NAP o ticket.', '<b>VIÑA</b> = supervisor Rodrigo Vera, <b>RM</b> = Camila Herrera, <b>OTROS</b> = el resto (se cambia en Reportes).'])}
   </div>
   <div class="card" id="ayudaAdmin"></div>`;
@@ -1651,14 +1656,21 @@ async function usrCargar() {
   let list;
   try { list = await sbRpc('admin_usuarios'); }
   catch (e) { box.innerHTML = h + `<p class="note" style="margin:0">${/function|schema cache|PGRST202/i.test(e.message || e.code || '') ? 'Falta activar esta función en la base: ejecuta <b>supabase/schema.sql</b> en Supabase → SQL Editor.' : esc(e.message)}</p>`; return; }
-  const est = u => u.mfa ? '<b style="color:var(--good)">Activa</b>' : u.mfa_requerida ? '<b style="color:var(--crit)">Falta activarla</b>' : '<span class="sub">No exigida</span>';
+  const est = u => u.mfa_exento ? '<b style="color:var(--warn)">Excepción: sin código</b>' : u.mfa ? '<b style="color:var(--good)">Activa</b>' : u.mfa_requerida ? '<b style="color:var(--crit)">Falta activarla</b>' : '<span class="sub">No exigida</span>';
   const faltan = (list || []).filter(u => u.mfa_requerida && !u.mfa).length;
   box.innerHTML = h + `<p class="note" style="margin:0 0 12px">Administración y backoffice entran con su contraseña y un código de 6 dígitos de una app de autenticación (Google o Microsoft Authenticator); la base de datos no les entrega nada sin ese código. ${faltan ? `<b style="color:var(--warn)">${faltan} usuario${faltan === 1 ? '' : 's'} la activará${faltan === 1 ? '' : 'n'} en su próximo ingreso.</b>` : ''}</p>
     <div class="table-wrap"><table><thead><tr><th>Usuario</th><th>Rol</th><th>Último ingreso</th><th>Dos pasos</th><th></th></tr></thead><tbody>${(list || []).map(u => `<tr>
       <td>${esc(u.nombre || '')}<div class="sub">${esc(u.correo || '')}</div></td><td>${esc(ROL_LABEL[u.rol] || (u.rol === 'pendiente' ? 'Sin acceso' : u.rol || ''))}</td>
       <td class="num">${u.ultimo_ingreso ? fechaHora(u.ultimo_ingreso) : '<span class="sub">Nunca</span>'}</td><td>${est(u)}</td>
-      <td>${u.mfa ? `<button type="button" class="btn sm ghost" data-qmfa="${esc(u.correo)}">Quitar</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
+      <td style="white-space:nowrap">${u.mfa && !u.mfa_exento ? `<button type="button" class="btn sm ghost" data-qmfa="${esc(u.correo)}">Quitar</button>` : ''}${u.rol !== 'admin' && (u.mfa_requerida || u.mfa_exento) ? ` <button type="button" class="btn sm ghost" data-exento="${esc(u.correo)}" data-v="${u.mfa_exento ? '0' : '1'}">${u.mfa_exento ? 'Exigir código' : 'Sin código'}</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
     <div id="usrMsg" class="note" style="margin-top:8px"></div>`;
+  $$('[data-exento]', box).forEach(b => b.addEventListener('click', async () => {
+    const c = b.dataset.exento, si = b.dataset.v === '1';
+    if (!confirm(si ? `¿Dejar a ${c} entrar SIN verificación en dos pasos?\n\nSu cuenta quedará protegida solo con la contraseña. Úsalo solo si no puede usar una app de códigos.` : `¿Volver a exigir la verificación en dos pasos a ${c}? La activará en su próximo ingreso.`)) return;
+    b.disabled = true;
+    try { const r = await sbRpc('admin_mfa_exento', { correo_usuario: c, exento: si }); await usrCargar(); if ($('#usrMsg')) $('#usrMsg').textContent = r; }
+    catch (e) { if ($('#usrMsg')) $('#usrMsg').textContent = /function|schema cache|PGRST202/i.test(e.message || e.code || '') ? 'Falta activar esta opción en la base: ejecuta supabase/schema.sql en Supabase → SQL Editor.' : e.message; b.disabled = false; }
+  }));
   $$('[data-qmfa]', box).forEach(b => b.addEventListener('click', async () => {
     const c = b.dataset.qmfa;
     if (!confirm(`¿Quitar la verificación en dos pasos a ${c}? La tendrá que activar de nuevo en su próximo ingreso.`)) return;
@@ -2587,7 +2599,7 @@ async function fdzMarcarTodas() {
 }
 const esAdmin = () => !isSup() && !ROLE.preview && (STANDALONE ? ROLE.rol === 'admin' : !!COB.owner);
 // Filas importadas de la planilla sin pedido, producto, ejecutivo ni RGU: restos del Excel, no ventas.
-const filaVacia = v => v.origen === 'excel' && !v.pedido && !String(v.producto || '').trim() && !String(v.ejecutivo || '').trim() && !(Number(v.cantidad) > 0);
+const filaVacia = v => !String(v.pedido || '').trim() && !String(v.producto || '').trim() && !(Number(v.cantidad) > 0) && String(v.rut || '').replace(/\D/g, '').length < 6;
 async function emiEliminar(ids) {
   if (!esAdmin() || !ids.length) return 0;
   let n = 0;
@@ -4370,6 +4382,9 @@ async function repImagen(dia, mes, mesKey) {
 /* ---------- PORTAL DE SUPERVISORES: solo sus ventas, sin ingreso, con avisos ---------- */
 const ROLE = { sup: '', preview: false, rol: '' };
 const isSup = () => !!ROLE.sup;
+// Backoffice o admin mirando "Ver como supervisor": puede reagendar y cambiar estados en Mis ventas.
+// El supervisor real nunca entra aquí (su vista no es previa) y un lector tampoco.
+const supEditable = () => ROLE.preview && !(STANDALONE && ['lector', 'supervisor'].includes(ROLE.rol)) && COB.canWrite !== false;
 const rguDe = arr => arr.reduce((s, v) => s + (v.cantidad || 1), 0);
 const SUP = { filt: null, ej: '', q: '', page: 1, prevInst: null, tab: 'ventas', vf: 'todas' };
 const SUP_META_BOL = META_BOL;
@@ -4399,7 +4414,7 @@ function ventasPanel(list, st, pre, o = {}) {
 }
 function ventasFiltradas(list, st) {
   const q = norm(st.q).replace(/[.\s]/g, ''), f = (VF[st.vf] || VF.todas).f;
-  return list.filter(v => f(v) && (!st.ej || (v.ejecutivo || '—') === st.ej) && (!q || norm([v.pedido, v.rut, v.producto, v.comuna, v.ejecutivo, v.supervisor, v.ticket, v.telefono, v.cuentaFact].join('|')).replace(/[.\s]/g, '').includes(q)))
+  return list.filter(v => (f(v) || (st.keep && st.keep.has(v.id))) && (!st.ej || (v.ejecutivo || '—') === st.ej) && (!q || norm([v.pedido, v.rut, v.producto, v.comuna, v.ejecutivo, v.supervisor, v.ticket, v.telefono, v.cuentaFact].join('|')).replace(/[.\s]/g, '').includes(q)))
     .sort((a, b) => (agendaDe(b) && POR_INSTALAR.includes(b.inst || '') ? 1 : 0) - (agendaDe(a) && POR_INSTALAR.includes(a.inst || '') ? 1 : 0) || (b.fecha || '').localeCompare(a.fecha || '') || (b.instEn || '').localeCompare(a.instEn || ''));
 }
 function ventasTabla(list, st, pre, o = {}) {
@@ -4410,20 +4425,24 @@ function ventasTabla(list, st, pre, o = {}) {
     <tbody>${shown.map(v => { const d = planDif(v); return `<tr data-vrow="${esc(v.id)}" style="cursor:${o.abrir ? 'pointer' : 'default'}"><td class="mono">${esc(v.pedido) || '—'}<div class="sub">Emitida ${fmtFecha(v.fecha).slice(0, 5)} · por ${esc(ingresoCorto(v))}</div>${v.estatus && v.estatus !== 'VENTA NUEVA' ? `<div class="sub" style="color:${tipoIng(v.estatus).t}">${esc(tipoIng(v.estatus).l)}${v.ticket ? ' · ticket ' + esc(v.ticket) : ''}</div>` : ''}</td>
       <td style="min-width:180px;white-space:normal"><span class="mono">${esc(v.rut)}</span>${v.telefono ? `<div>${telLink(v.telefono) || `<span class="sub">${esc(v.telefono)}</span>`}</div>` : '<div class="sub">Sin teléfono</div>'}<div class="sub">${esc(v.producto)} · ${v.cantidad || 0} RGU · ${esc(v.comuna)}${v.cuentaFact ? ' · cta. ' + esc(v.cuentaFact) : ''}</div>${d ? `<div class="sub" style="color:var(--serious)">${ic('tri', 'i')} Plan modificado${d.vtr.length ? ': ' + esc(d.vtr.join(', ')) : ''}</div>` : ''}</td>
       <td>${esc(v.ejecutivo) || '—'}</td>
-      <td class="num">${agendaDe(v) ? cuandoTxt(agendaDe(v)) : '<span class="badge" style="--t:var(--warn)">Sin agenda</span>'}<div class="sub">${esc((v.reagenda?.fecha ? 'Reagenda · ' + (v.reagenda.bloque || '') : v.agenda?.bloque) || '')}</div></td>
-      <td>${o.editar ? instCell(v) : `${badge(INST_EST[v.inst || ''] || INST_EST[''])}${v.inst === 'CANCELADO' && motivoDe(v) ? `<div class="sub">${esc(motivoDe(v))}</div>` : v.motivo ? `<div class="sub" style="white-space:normal;max-width:220px">${esc(v.motivo)}</div>` : ''}${v.instEn && supEvent(v) ? `<div class="sub">${hace(v.instEn)}</div>` : ''}`}</td>
+      <td class="num">${agendaDe(v) ? cuandoTxt(agendaDe(v)) : '<span class="badge" style="--t:var(--warn)">Sin agenda</span>'}<div class="sub">${esc((v.reagenda?.fecha ? 'Reagenda · ' + (v.reagenda.bloque || '') : v.agenda?.bloque) || '')}</div>${o.agenda && POR_INSTALAR.includes(v.inst || '') ? agCell(v) : ''}</td>
+      <td>${o.editar ? instCell(v, true, !!o.agenda) : `${badge(INST_EST[v.inst || ''] || INST_EST[''])}${v.inst === 'CANCELADO' && motivoDe(v) ? `<div class="sub">${esc(motivoDe(v))}</div>` : v.motivo ? `<div class="sub" style="white-space:normal;max-width:220px">${esc(v.motivo)}</div>` : ''}${v.instEn && supEvent(v) ? `<div class="sub">${hace(v.instEn)}</div>` : ''}`}</td>
       <td>${v.boleta?.venc ? `${boletaBadge(v.boleta)}<div class="sub">Vence ${fmtFecha(v.boleta.venc).slice(0, 5)} · Día 8 ${fmtFecha(v.boleta.plazo || addDays(v.boleta.venc, 8)).slice(0, 5)}</div>` : v.boleta?.estado ? badge({ ...BE[beKey(v.boleta.estado)], l: BE[beKey(v.boleta.estado)].l }) : '<span class="sub">—</span>'}</td></tr>`; }).join('')}</tbody></table></div>
     <div class="t-foot"><span>Mostrando ${fmt(shown.length)} de ${fmt(rows.length)} ventas</span>${shown.length < rows.length ? `<button class="btn sm" id="${pre}More">Cargar más</button>` : ''}</div>`
     : `<div class="empty">${ic('search')}<p>${st.q ? `No encontré ventas con "${esc(st.q)}" en este mes.` : 'No hay ventas con este filtro.'}</p></div>`;
   $(`#${pre}More`)?.addEventListener('click', () => { st.page++; ventasTabla(list, st, pre, o); });
   if (o.abrir) $$('tr[data-vrow]', box).forEach(tr => tr.addEventListener('click', () => { const v = list.find(x => x.id === tr.dataset.vrow); if (v) openEmision(v.id, v); }));
-  if (o.editar) bindInstCells(box, () => { if (!COB.db) o.redibujar && o.redibujar(); });
+  // La venta que se edita sigue en la lista aunque deje de cumplir el filtro (se marca antes de guardar).
+  if (o.editar || o.agenda) box.addEventListener('change', e => { const c = e.target.closest && e.target.closest('[data-stid]'); if (c) (st.keep ||= new Set()).add(c.dataset.stid); }, true);
+  const guardado = () => { if (!COB.db) o.redibujar && o.redibujar(); };
+  if (o.editar) bindInstCells(box, guardado);
+  if (o.agenda) bindAgCells(box, guardado);
 }
 function bindVentasPanel(root, list, st, pre, o = {}) {
   let t = null;
-  $(`#${pre}Q`, root)?.addEventListener('input', e => { st.q = e.target.value; st.page = 1; clearTimeout(t); t = setTimeout(() => ventasTabla(list, st, pre, o), 120); });
-  $(`#${pre}Ej`, root)?.addEventListener('change', e => { st.ej = e.target.value; st.page = 1; ventasTabla(list, st, pre, o); });
-  $$('[data-vf]', root).forEach(b => b.addEventListener('click', () => { st.vf = b.dataset.vf; st.page = 1; $$('[data-vf]', root).forEach(x => x.setAttribute('aria-pressed', String(x === b))); ventasTabla(list, st, pre, o); }));
+  $(`#${pre}Q`, root)?.addEventListener('input', e => { st.q = e.target.value; st.page = 1; st.keep = null; clearTimeout(t); t = setTimeout(() => ventasTabla(list, st, pre, o), 120); });
+  $(`#${pre}Ej`, root)?.addEventListener('change', e => { st.ej = e.target.value; st.page = 1; st.keep = null; ventasTabla(list, st, pre, o); });
+  $$('[data-vf]', root).forEach(b => b.addEventListener('click', () => { st.vf = b.dataset.vf; st.page = 1; st.keep = null; $$('[data-vf]', root).forEach(x => x.setAttribute('aria-pressed', String(x === b))); ventasTabla(list, st, pre, o); }));
   ventasTabla(list, st, pre, o);
 }
 const supKey = () => 'vp-sup-visto-' + nameKey(ROLE.sup);
@@ -4640,7 +4659,7 @@ const supEvent = v => v.instEn && ['COMPLETADO', 'CANCELADO'].includes(v.inst);
 function supUnseen() { const s = supSeen(); return supList().filter(v => supEvent(v) && v.instEn > s); }
 function setSupervisor(name, preview) {
   ROLE.sup = name || ''; ROLE.preview = !!preview;
-  SUP.filt = null; SUP.ej = ''; SUP.q = '';
+  SUP.filt = null; SUP.ej = ''; SUP.q = ''; SUP.keep = null;
   SUP.prevInst = isSup() && EMI.loaded ? new Map(supList().map(v => [v.id, v.inst || ''])) : null;
   document.body.classList.toggle('sup-mode', isSup());
   if (isSup() && !supSeen()) supSetSeen(new Date().toISOString()); // primera visita: sin avisos acumulados
@@ -4661,7 +4680,7 @@ function supOnData() {
   if (SUP.prevInst) {
     supList().forEach(v => {
       const antes = SUP.prevInst.get(v.id);
-      if (antes !== undefined && antes !== (v.inst || '') && ['COMPLETADO', 'CANCELADO'].includes(v.inst)) supNotify(v);
+      if (!ROLE.preview && antes !== undefined && antes !== (v.inst || '') && ['COMPLETADO', 'CANCELADO'].includes(v.inst)) supNotify(v);
     });
   }
   SUP.prevInst = now;
@@ -4875,7 +4894,7 @@ function renderSpBody() {
   $('#spCerrar')?.addEventListener('click', () => { SPV.sup = ''; renderSpBody(); });
   $$('tr[data-spej]', box).forEach(tr => tr.addEventListener('click', () => { SPV.ej = tr.dataset.spej; SPV.vf = 'todas'; SPV.page = 1; renderSpBody(); $('#spQ')?.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' }); }));
   $('#spComo')?.addEventListener('click', () => setSupervisor(SPV.sup, true));
-  if (SPV.sup) bindVentasPanel(box, lista, SPV, 'sp', { editar, abrir: true, redibujar: renderSpBody });
+  if (SPV.sup) bindVentasPanel(box, lista, SPV, 'sp', { editar, agenda: editar, abrir: true, redibujar: renderSpBody });
 }
 function viewSupervisor(el) {
   emiInit();
@@ -4883,9 +4902,9 @@ function viewSupervisor(el) {
   const meses = [...new Set([isoOf(new Date()).slice(0, 7), EMI.mes, ...[1, 2, 3].map(k => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - k); return isoOf(d).slice(0, 7); })])].sort().reverse();
   const notifOk = 'Notification' in window && Notification.permission === 'default';
   el.innerHTML = `
-  ${ROLE.preview ? `<div class="prev-banner">${ic('eye')}<div class="grow"><b>Vista previa:</b> así ve el portal ${esc(ROLE.sup)}. Solo sus ventas, sin ingreso ni edición.</div><button class="btn sm" id="supExit">Salir de la vista previa</button></div>` : ''}
+  ${ROLE.preview ? `<div class="prev-banner">${ic('eye')}<div class="grow"><b>Vista previa:</b> así ve el portal ${esc(ROLE.sup)}: solo sus ventas.${supEditable() ? ' Tú puedes reagendar y cambiar el estado en <b>Mis ventas</b>; el supervisor lo ve solo para consulta.' : ' Sin ingreso ni edición.'}</div><button class="btn sm" id="supExit">Salir de la vista previa</button></div>` : ''}
   <div class="hello">
-    <div>${SUP.tab === 'resumen' ? `<h2>Hola${ROLE.sup ? `, <span>${esc(titleCase(ROLE.sup.split(/\s+/)[0]))}</span>` : ''}</h2>` : `<h2>${esc(supSec().n)}</h2>`}<p>${{ resumen: 'Tu mes de un vistazo', ventas: 'Busca y filtra tus ventas', cobranza: 'Boletas pagadas en plazo y clientes para llamar', vendedores: 'Cómo va cada vendedor de tu equipo', arrastre: 'Ventas de meses anteriores que siguen pendientes', avisos: 'Ventas que se instalaron o cancelaron' }[SUP.tab] || ''}${ROLE.sup ? ' · ' + esc(ROLE.sup) : ''} · solo lectura</p></div>
+    <div>${SUP.tab === 'resumen' ? `<h2>Hola${ROLE.sup ? `, <span>${esc(titleCase(ROLE.sup.split(/\s+/)[0]))}</span>` : ''}</h2>` : `<h2>${esc(supSec().n)}</h2>`}<p>${{ resumen: 'Tu mes de un vistazo', ventas: 'Busca y filtra tus ventas', cobranza: 'Boletas pagadas en plazo y clientes para llamar', vendedores: 'Cómo va cada vendedor de tu equipo', arrastre: 'Ventas de meses anteriores que siguen pendientes', avisos: 'Ventas que se instalaron o cancelaron' }[SUP.tab] || ''}${ROLE.sup ? ' · ' + esc(ROLE.sup) : ''} · ${supEditable() && SUP.tab === 'ventas' ? 'vista previa con edición' : 'solo lectura'}</p></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <select class="input" id="supMes" aria-label="Mes" style="height:38px;width:auto">${meses.map(m => `<option value="${m}" ${m === EMI.mes ? 'selected' : ''}>${mesLabel(m)}</option>`).join('')}</select>
       ${notifOk ? `<button class="btn sm primary" id="supNotif">${ic('bell')}Activar avisos en este dispositivo</button>` : ''}
@@ -4917,9 +4936,9 @@ function renderSupBody() {
   const tone = toneInst;
   if (SUP.tab === 'ventas') {
     box.innerHTML = `<div class="card stack">
-      <div class="card-h" style="margin:0"><div><h3>Tus ventas de ${mesLabel(EMI.mes).toLowerCase()} · ${fmt(list.length)}</h3><p>Busca por pedido, RUT o cliente, o toca un filtro · el estado lo actualiza el equipo de backoffice</p></div></div>
+      <div class="card-h" style="margin:0"><div><h3>Tus ventas de ${mesLabel(EMI.mes).toLowerCase()} · ${fmt(list.length)}</h3><p>Busca por pedido, RUT o cliente, o toca un filtro · ${supEditable() ? 'reagenda o cambia el estado aquí mismo' : 'el estado lo actualiza el equipo de backoffice'}</p></div></div>
       ${ventasPanel(list, SUP, 'sv')}</div>`;
-    bindVentasPanel(box, list, SUP, 'sv'); updateSupBell(); return;
+    bindVentasPanel(box, list, SUP, 'sv', supEditable() ? { editar: true, agenda: true, redibujar: renderSupBody } : {}); updateSupBell(); return;
   }
   if (SUP.tab === 'arrastre') { if (!supArrastreLista()) { box.innerHTML = `<div class="card"><div class="factib"><span class="spin"></span><span>Buscando tus ventas de meses anteriores…</span></div></div>`; arrCargar().then(() => { if (currentView() === 'supervisor') renderSupBody(); }); return; } box.innerHTML = supArrastreHTML() || `<div class="card"><p class="note" style="margin:0">No tienes ventas de arrastre: todas las de meses anteriores ya están completadas o canceladas.</p></div>`; updateSupBell(); return; }
   if (SUP.tab === 'cobranza') { box.innerHTML = supBoletasHTML(); bindSupBoletas(box); updateSupBell(); return; }
@@ -4997,35 +5016,51 @@ function renderSupPicker() {
 
 /* ---------- estado de instalación editable en la fila ---------- */
 const ST_OPC = ['COMPLETADO', 'CANCELADO', 'REAGENDADO', 'EN EJECUCION', 'SIN AGENDA'];
-function instCell(v, conMotivo = true) {
+// sinReag: la fecha y el bloque de reagenda van en la columna Agenda (agCell), no aquí.
+function instCell(v, conMotivo = true, sinReag = false) {
   const cur = v.inst || '', cfg = emiCfg();
   const opts = [['', '·  Sin estado'], ...ST_OPC.map(o => [o, o]), ...(cur && !ST_OPC.includes(cur) ? [[cur, cur]] : [])];
   const t = (INST_EST[cur] || INST_EST['']).t;
   let extra = '';
-  if (cur === 'REAGENDADO') extra = `<div class="two"><input class="input mini" type="date" data-stf="reagenda.fecha" value="${v.reagenda?.fecha || ''}" aria-label="Fecha de reagenda"><select class="input mini" data-stf="reagenda.bloque" aria-label="Bloque de reagenda"><option value="">Bloque</option>${cfg.bloques.map(b => `<option ${v.reagenda?.bloque === b ? 'selected' : ''}>${esc(b)}</option>`).join('')}</select></div>`;
+  if (cur === 'REAGENDADO' && !sinReag) extra = `<div class="two"><input class="input mini" type="date" data-stf="reagenda.fecha" value="${v.reagenda?.fecha || ''}" aria-label="Fecha de reagenda"><select class="input mini" data-stf="reagenda.bloque" aria-label="Bloque de reagenda"><option value="">Bloque</option>${cfg.bloques.map(b => `<option ${v.reagenda?.bloque === b ? 'selected' : ''}>${esc(b)}</option>`).join('')}</select></div>`;
   else if (cur === 'CANCELADO' && conMotivo) { const mc = motivoDe(v); extra = `<select class="input mini" data-stf="motivoCat" aria-label="Motivo de cancelación" ${mc ? '' : 'style="border-color:var(--serious)"'}><option value="">Elegir motivo…</option>${MOTIVOS.map(x => `<option ${mc === x ? 'selected' : ''}>${x}</option>`).join('')}</select>`; }
   else if (v.motivo) extra = `<div class="sub" style="white-space:normal;max-width:220px">${esc(v.motivo)}</div>`;
   return `<div class="st-cell" data-stid="${esc(v.id)}"><select class="st-sel" style="--t:${t}" data-st aria-label="Estado de instalación">${opts.map(([val, lab]) => `<option value="${esc(val)}" ${cur === val ? 'selected' : ''}>${esc(lab)}</option>`).join('')}</select>${extra}</div>`;
 }
-function bindInstCells(root, onSaved) {
-  $$('.st-cell', root).forEach(cell => {
+async function celdaGuardar(cell, patchFn, onSaved) {
+  const v0 = emiAll().find(x => x.id === cell.dataset.stid) || (ARR.data || []).find(x => x.id === cell.dataset.stid); if (!v0) return;
+  const v = JSON.parse(JSON.stringify(v0));
+  v.reagenda ||= { fecha: '', bloque: '' };
+  patchFn(v);
+  v.editadoPor = COB.user ? await COB.user.id() : null; v.editadoEn = new Date().toISOString();
+  cell.classList.add('saving');
+  try {
+    const g = await emiWrite(v); arrActualizar(g || v);
+    cell.classList.remove('saving'); cell.classList.add('saved'); setTimeout(() => cell.classList.remove('saved'), 900);
+    if (onSaved) onSaved(v);
+  } catch (e) {
+    cell.classList.remove('saving');
+    toast(e && e.code === 'invalid_argument' ? 'Tu acceso es de solo lectura: no puedes cambiar estados.' : 'No se pudo guardar el cambio. Intenta de nuevo.', 'alertc');
+  }
+}
+// Reagendar en la fila: fecha y bloque; al poner fecha, la venta pasa a "Reagendado".
+function agCell(v) {
+  const cfg = emiCfg();
+  return `<div class="st-cell ag-cell" data-stid="${esc(v.id)}"><span class="sub">Reagendar</span><input class="input mini" type="date" data-agf="fecha" value="${v.reagenda?.fecha || ''}" aria-label="Fecha de reagenda del pedido ${esc(v.pedido || '')}"><select class="input mini" data-agf="bloque" aria-label="Bloque de reagenda"><option value="">Bloque</option>${cfg.bloques.map(b => `<option ${v.reagenda?.bloque === b ? 'selected' : ''}>${esc(b)}</option>`).join('')}</select></div>`;
+}
+function bindAgCells(root, onSaved) {
+  $$('.ag-cell', root).forEach(cell => {
     cell.addEventListener('click', e => e.stopPropagation());
-    const save = async (patchFn) => {
-      const v0 = emiAll().find(x => x.id === cell.dataset.stid) || (ARR.data || []).find(x => x.id === cell.dataset.stid); if (!v0) return;
-      const v = JSON.parse(JSON.stringify(v0));
-      v.reagenda ||= { fecha: '', bloque: '' };
-      patchFn(v);
-      v.editadoPor = COB.user ? await COB.user.id() : null; v.editadoEn = new Date().toISOString();
-      cell.classList.add('saving');
-      try {
-        const g = await emiWrite(v); arrActualizar(g || v);
-        cell.classList.remove('saving'); cell.classList.add('saved'); setTimeout(() => cell.classList.remove('saved'), 900);
-        if (onSaved) onSaved(v);
-      } catch (e) {
-        cell.classList.remove('saving');
-        toast(e && e.code === 'invalid_argument' ? 'Tu acceso es de solo lectura: no puedes cambiar estados.' : 'No se pudo guardar el estado. Intenta de nuevo.', 'alertc');
-      }
-    };
+    $$('[data-agf]', cell).forEach(inp => inp.addEventListener('change', () => inp.dataset.agf === 'fecha' && inp.value && !/^20[2-9]\d-/.test(inp.value) ? null : celdaGuardar(cell, v => {
+      v.reagenda[inp.dataset.agf] = inp.value;
+      if (inp.dataset.agf === 'fecha' && inp.value) v.inst = 'REAGENDADO';
+    }, onSaved)));
+  });
+}
+function bindInstCells(root, onSaved) {
+  $$('.st-cell:not(.ag-cell)', root).forEach(cell => {
+    cell.addEventListener('click', e => e.stopPropagation());
+    const save = patchFn => celdaGuardar(cell, patchFn, onSaved);
     $('[data-st]', cell).addEventListener('change', e => {
       const val = e.target.value;
       e.target.style.setProperty('--t', (INST_EST[val] || INST_EST['']).t);
@@ -5275,7 +5310,13 @@ function mfaDialog(factor, listo) {
   $('#logoutDlg')?.remove();
   const d = document.createElement('div'); d.id = 'logoutDlg'; d.className = 'mfa-dlg'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'mfaTit');
   document.body.appendChild(d);
-  let ins = null, err = '';
+  let ins = null, err = '', fallas = 0;
+  // Diferencia entre la hora de este equipo y la del servidor (los códigos dependen de la hora).
+  const desfase = async () => { if (window.Capacitor || !/^https?:$/.test(location.protocol)) return 0; try { const r = await fetch('manifest.webmanifest?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' }); const d = Date.parse(r.headers.get('date') || ''); return d ? Math.round((Date.now() - d) / 60000) : 0; } catch (e) { return 0; } };
+  const ayudaFallas = async () => {
+    const min = await desfase();
+    return `<div class="restricted" style="margin-top:8px;display:block;line-height:1.5">${min && Math.abs(min) >= 1 ? `<b>La hora de este equipo está desfasada ${Math.abs(min)} minuto${Math.abs(min) === 1 ? '' : 's'}.</b> Activa la fecha y hora automáticas en Ajustes y vuelve a probar.<br>` : ''}Si sigue fallando:<br>1. Revisa que la hora del teléfono esté en <b>automática</b>.<br>2. En la app de códigos borra las cuentas <b>NovaVentas</b> antiguas (puede haber varias).${factor ? '' : '<br>3. Vuelve a agregar la clave de <b>esta</b> pantalla (si saliste y volviste a entrar, la clave cambió).'}</div>`;
+  };
   const telefono = window.matchMedia && matchMedia('(max-width: 900px)').matches;
   const pintar = () => {
     const listoCodigo = !!(factor || ins);
@@ -5324,7 +5365,7 @@ function mfaDialog(factor, listo) {
       if (!/^\d{6}$/.test(c)) { err = 'Escribe los 6 dígitos que muestra la app.'; $('#mfaErr').innerHTML = `<div class="restricted">${ic('alertc')}<span>${esc(err)}</span></div>`; return; }
       $('#mfaSi').disabled = true; $('#mfaSi').innerHTML = '<span class="spin" style="border-top-color:#fff"></span> Verificando…';
       try { await VP_STANDALONE.mfaVerificar(factor ? factor.id : ins.id, c); marcarActividad(true); d.remove(); listo(true); }
-      catch (er) { err = er.message; $('#mfaErr').innerHTML = `<div class="restricted">${ic('alertc')}<span>${esc(err)}</span></div>`; $('#mfaSi').disabled = false; $('#mfaSi').textContent = 'Verificar'; code.value = ''; code.focus(); }
+      catch (er) { err = er.message; if (er.tipo !== 'limite') fallas++; $('#mfaErr').innerHTML = `<div class="restricted">${ic('alertc')}<span>${esc(err)}</span></div>` + (fallas >= 2 && er.tipo === 'codigo' ? await ayudaFallas() : ''); $('#mfaSi').disabled = false; $('#mfaSi').textContent = 'Verificar'; code.value = ''; code.focus(); }
     });
   };
   pintar();
